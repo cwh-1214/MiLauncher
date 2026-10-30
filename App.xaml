@@ -1,0 +1,116 @@
+<Application x:Class="MiLauncher.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <!-- ===== 字体（全局，MainWindow 和 AppDialog 共用）=====
+             主 UI：HarmonyOS Sans SC，两档字重（Regular / Medium），嵌在 exe 里；
+             数字与英文展示：Melete（几何宽体，只有拉丁与数字，中文自动回落前一项）；
+             再找不到就回落系统雅黑 / Segoe UI。 -->
+        <FontFamily x:Key="UiFont">/Assets/Fonts/#HarmonyOS Sans SC, Microsoft YaHei UI, Segoe UI</FontFamily>
+        <!-- Melete 是"方框科技体"，笔画都是直角方块；实测在 12~13px（版本号那种字号）会
+             直接读成乱码/符号，项目里又没有 28px 以上的英文数字场景，所以暂不启用。
+             字体文件留在包里（10KB），以后真有大号数字展示位再挂到需要的地方。 -->
+        <FontFamily x:Key="DisplayFont">/Assets/Fonts/#Melete, /Assets/Fonts/#HarmonyOS Sans SC, Segoe UI</FontFamily>
+
+        <!-- 全局配色，后续换主题只改这里 -->
+        <SolidColorBrush x:Key="BgBrush" Color="#0E0E14" />
+        <SolidColorBrush x:Key="TextPrimary" Color="#F2F2F7" />
+        <SolidColorBrush x:Key="TextSecondary" Color="#9A9AAC" />
+        <SolidColorBrush x:Key="TextTertiary" Color="#6C6C7E" />
+
+        <!--
+            右键菜单：系统默认是浅色的，压在深色界面上一块白很难看。
+            这里统一换成深色卡片，圆角 8，hover 用一层浅白。
+            只用在左侧图标的右键菜单上（全应用仅此一处）。
+        -->
+        <Style TargetType="ContextMenu">
+            <Setter Property="Background" Value="#1F1F2A" />
+            <Setter Property="BorderBrush" Value="#33FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="HasDropShadow" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <StackPanel IsItemsHost="True"
+                                        KeyboardNavigation.DirectionalNavigation="Cycle" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="MenuItem">
+            <Setter Property="Foreground" Value="#E8E8F0" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="Bd" Background="Transparent"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter ContentSource="Header"
+                                              RecognizesAccessKey="True"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#2AFFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#6C6C7E" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="Separator">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Separator">
+                        <Border Height="1" Margin="8,4" Background="#22FFFFFF" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 破坏性操作（从列表移除）：红字，hover 也走一点点红底 -->
+        <Style x:Key="DangerMenuItem" TargetType="MenuItem"
+               BasedOn="{StaticResource {x:Type MenuItem}}">
+            <Setter Property="Foreground" Value="#F0716B" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="Bd" Background="Transparent"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter ContentSource="Header"
+                                              RecognizesAccessKey="True"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#33E0534C" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#6C6C7E" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Application.Resources>
+</Application>

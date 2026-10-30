@@ -1,0 +1,10 @@
+{
+  "_说明": "复制成 signing.local.json 再填。三种方式任选一种，优先级 PfxPath > Thumbprint > Subject。",
+  "_示例1_证书库": "买完证书（SimplySign 云证书 / UKey）后，打开 certmgr.msc → 个人 → 证书，双击证书看「指纹」，填到 Thumbprint。",
+  "_示例2_PFX": "如果是 PFX 文件，填 PfxPath 和 PfxPassword（相对路径以 tools\\ 为基准）。",
+
+  "Thumbprint": "",
+  "PfxPath": "",
+  "PfxPassword": "",
+  "Subject": ""
+}

@@ -1,0 +1,1034 @@
+<Window x:Class="MiLauncher.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="米哈游游戏中心"
+        Height="720" Width="1280"
+        MinHeight="720" MinWidth="1280"
+        MaxHeight="720" MaxWidth="1280"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="#0E0E14"
+        FontFamily="{StaticResource UiFont}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="ClearType">
+
+    <!-- 窗口尺寸固定 1280×720（和官方内容区一致，官方也不能拉）。
+         无边框窗口默认会留一圈约 7px 的不可见缩放边框，背景图铺不满、四边会露出桌面；
+         WindowChrome 把客户区撑到整个窗口。ResizeBorderThickness=0：不可缩放也就没有边缘拖拽区。 -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="0"
+                      GlassFrameThickness="0" CornerRadius="0"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <!-- ===== 主题色：亮金 =====
+             控件强调色统一走这几个资源，别再各写各的十六进制。 -->
+        <SolidColorBrush x:Key="AccentGold" Color="#FBDC29" />
+        <SolidColorBrush x:Key="AccentGoldText" Color="#FBE27A" />
+        <SolidColorBrush x:Key="AccentGoldFill" Color="#26FBDC29" />
+        <SolidColorBrush x:Key="AccentGoldEdge" Color="#59FBDC29" />
+        <!-- hover 用的弱金：只在鼠标悬停时垫一层，不抢视线 -->
+        <SolidColorBrush x:Key="AccentGoldHover" Color="#22FBDC29" />
+
+
+        <!-- 详情区淡入 + 上移 -->
+        <Storyboard x:Key="DetailIn">
+            <DoubleAnimation Storyboard.TargetName="DetailRoot"
+                             Storyboard.TargetProperty="Opacity"
+                             From="0" To="1" Duration="0:0:0.26" />
+            <DoubleAnimation Storyboard.TargetName="DetailTranslate"
+                             Storyboard.TargetProperty="Y"
+                             From="16" To="0" Duration="0:0:0.34">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseOut" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+
+        <!-- 左侧图标轨条目 -->
+        <DataTemplate x:Key="GameTile">
+            <Grid Height="74" Background="Transparent" ToolTip="{Binding Name}">
+                <Border x:Name="TileBg"
+                        Width="48" Height="48" CornerRadius="14"
+                        Background="#1FFFFFFF"
+                        BorderBrush="#00FFFFFF" BorderThickness="1"
+                        HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Grid>
+                        <TextBlock Text="{Binding ShortName}"
+                                   Foreground="{Binding AccentBrush}"
+                                   FontSize="21" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <!-- 图标本身也做圆角，避免直角图片压在圆角块上 -->
+                        <Border Width="32" Height="32" CornerRadius="9"
+                                RenderOptions.BitmapScalingMode="HighQuality">
+                            <Border.Background>
+                                <ImageBrush ImageSource="{Binding Icon}" Stretch="UniformToFill" />
+                            </Border.Background>
+                        </Border>
+                        <Ellipse x:Name="RunDot" Width="6" Height="6" Fill="#7BE3A0"
+                                 Stroke="#12121A" StrokeThickness="2"
+                                 HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                 Margin="0,0,1,1" Visibility="Collapsed" />
+                    </Grid>
+                </Border>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                    <Setter TargetName="TileBg" Property="Background" Value="#2BFFFFFF" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                    <Setter TargetName="TileBg" Property="Background" Value="#40FFFFFF" />
+                    <Setter TargetName="TileBg" Property="BorderBrush" Value="#66FFFFFF" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                    <Setter TargetName="RunDot" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <Style x:Key="TileItem" TargetType="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <EventSetter Event="MouseRightButtonUp" Handler="Tile_MouseRightButtonUp" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border Background="Transparent" Margin="0,2">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 主按钮：游戏主色实心块，左侧播放三角。悬停时叠一层极淡白提亮，
+             按下整块轻微回缩（0.985），比单纯改透明度更像"按得动"的东西。 -->
+        <Style x:Key="PrimaryBtn" TargetType="Button">
+            <Setter Property="Foreground" Value="#12121A" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Padding" Value="26,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <!-- 注意：Padding 不能设在 Bd 上。Glow 是 Bd 的子元素，会被 Padding 挤成
+                             中间一块——hover 时就变成"只亮中间、两端不变"。内边距放到内容层。 -->
+                        <Border x:Name="Bd" CornerRadius="12"
+                                Background="{TemplateBinding Background}"
+                                BorderThickness="1" BorderBrush="#00FFFFFF"
+                                RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1" />
+                            </Border.RenderTransform>
+                            <Grid>
+                                <Border x:Name="Glow" CornerRadius="12" Background="#00FFFFFF" />
+                                <StackPanel Orientation="Horizontal"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}">
+                                    <!-- 播放三角只在「开始游戏」时出现；空状态的「添加游戏目录」
+                                         共用这个样式，不能也挂个三角 -->
+                                    <Path x:Name="PlayIcon" Visibility="Collapsed"
+                                          Fill="{TemplateBinding Foreground}"
+                                          Data="M0.5,0.5 L10.5,6 L0.5,11.5 Z"
+                                          VerticalAlignment="Center" Margin="0,0,10,0" />
+                                    <Ellipse x:Name="LiveDot" Width="7" Height="7" Fill="#0E1214"
+                                             Visibility="Collapsed" VerticalAlignment="Center" Margin="0,0,9,0" />
+                                    <ContentPresenter VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Glow" Property="Background" Value="#14FFFFFF" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#40FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Glow" Property="Background" Value="#2E000000" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#00FFFFFF" />
+                                <Setter TargetName="Bd" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.985" ScaleY="0.985" />
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <!-- 运行中：三角换成一个小实心点，按钮同时置灰，不要看起来像还能点 -->
+                            <Trigger Property="Tag" Value="Play">
+                                <Setter TargetName="PlayIcon" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="Tag" Value="Running">
+                                <Setter TargetName="PlayIcon" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="LiveDot" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 次级按钮：一层很薄的玻璃 + 1px 描边。默认只有文字，
+             有版本可更新时由代码把 Tag 设成 Update，模板才放出下载图标、换成金色。 -->
+        <Style x:Key="GhostBtn" TargetType="Button">
+            <Setter Property="Foreground" Value="#E2E2EE" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Padding" Value="20,0" />
+            <Setter Property="Background" Value="#2E000000" />
+            <Setter Property="BorderBrush" Value="#3DFFFFFF" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="12"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1"
+                                Padding="{TemplateBinding Padding}"
+                                RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1" />
+                            </Border.RenderTransform>
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Path x:Name="DownIcon" Visibility="Collapsed"
+                                      Data="M7,1 L7,9 M3.4,5.4 L7,9 L10.6,5.4 M2,12.2 L12,12.2"
+                                      Stroke="{TemplateBinding Foreground}" StrokeThickness="1.6"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round"
+                                      VerticalAlignment="Center" Margin="0,0,7,0" />
+                                <ContentPresenter VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#4A000000" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#5C000000" />
+                                <Setter TargetName="Bd" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.985" ScaleY="0.985" />
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="Tag" Value="Update">
+                                <Setter TargetName="DownIcon" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 标题栏按钮 -->
+        <!-- 窗口按钮：与官方启动器一致——纯白线性图标、无底色块，仅悬停时浮出一层极淡的圆 -->
+        <Style x:Key="ChromeBtn" TargetType="Button">
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="8" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1CFFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#33FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ===== 设置面板用到的控件 ===== -->
+
+        <!-- 开关：金色轨道 + 白色圆点，和官方那种圆润小滑块一个路子 -->
+        <Style x:Key="Switch" TargetType="CheckBox">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Border x:Name="Track" Width="40" Height="22" CornerRadius="11"
+                                Background="#2E2E3C">
+                            <Ellipse x:Name="Knob" Width="16" Height="16" Fill="#FFFFFF"
+                                     HorizontalAlignment="Left" Margin="3,0,0,0">
+                                <Ellipse.Effect>
+                                    <DropShadowEffect Color="#000000" BlurRadius="4"
+                                                      Opacity="0.4" ShadowDepth="0" />
+                                </Ellipse.Effect>
+                            </Ellipse>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="{StaticResource AccentGold}" />
+                                <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right" />
+                                <Setter TargetName="Knob" Property="Margin" Value="0,0,3,0" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Track" Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 详情页「使用 DX12 模式启动」勾选项：小方框 + 文字，选中用绝区零的黄色。
+             方框 16×16，勾是手画的折线（模板里不画勾的话，方形 Checkbox 只有一个空框）。 -->
+        <Style x:Key="Dx12Check" TargetType="CheckBox">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="#C6C6D4" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" Background="Transparent">
+                            <Border x:Name="Box" Width="16" Height="16" CornerRadius="4"
+                                    Background="#1FFFFFFF" BorderBrush="#82829A"
+                                    BorderThickness="1" VerticalAlignment="Center">
+                                <Path x:Name="Tick" Data="M3.2,8.2 L6.5,11.4 L12.4,4.9"
+                                      Stroke="#1A1A22" StrokeThickness="1.9"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round" Visibility="Collapsed" />
+                            </Border>
+                            <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Box" Property="BorderBrush" Value="#8E8EA6" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Box" Property="Background" Value="{StaticResource AccentGold}" />
+                                <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource AccentGold}" />
+                                <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 暗色下拉：默认主题的 ComboBox 是白底，在深色面板上很刺眼，整套重做 -->
+        <Style x:Key="DarkCombo" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="#E8E8F2" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Width" Value="124" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="Bd" CornerRadius="8" Background="#1F1F2B"
+                                    BorderBrush="#2E2E3C" BorderThickness="1" />
+                            <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
+                                              Margin="11,0,26,0"
+                                              HorizontalAlignment="Left" VerticalAlignment="Center"
+                                              TextBlock.Foreground="#E8E8F2" />
+                            <Path Data="M0,0 L5,5 L10,0" Stroke="#8A8A9C" StrokeThickness="1.4"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  HorizontalAlignment="Right" VerticalAlignment="Center"
+                                  Margin="0,0,11,0" />
+                            <Popup x:Name="PART_Popup" Placement="Bottom"
+                                   AllowsTransparency="True" Focusable="False"
+                                   PopupAnimation="Fade" IsOpen="{TemplateBinding IsDropDownOpen}">
+                                <Border Background="#1C1C26" CornerRadius="8" Margin="3"
+                                       BorderBrush="#2E2E3C" BorderThickness="1">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#000000" BlurRadius="14"
+                                                          Opacity="0.55" ShadowDepth="0" />
+                                    </Border.Effect>
+                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentGoldHover}" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentGoldEdge}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DarkComboItem" TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="#D8D8E4" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="11,7" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentGoldFill}" />
+                                <Setter Property="Foreground" Value="{StaticResource AccentGoldText}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource AccentGoldText}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 设置弹窗左侧导航项：官方样式是选中项整块变 #303136 圆角矩形，文字变白 -->
+        <Style x:Key="NavRadio" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Margin" Value="0,0,0,2" />
+            <Setter Property="Foreground" Value="#9A9AA8" />
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="8" Padding="12,0">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <!-- 悬停色取选中块 #303136 的弱一档灰：看出来能点，又不和真正的选中抢 -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#27282E" />
+                            </Trigger>
+                            <!-- 选中态回到官方那套：#303136 灰块 + 白字。
+                                 放在悬停后面，选中项鼠标经过时也不会丢掉灰块 -->
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#303136" />
+                                <Setter Property="Foreground" Value="#FAFAFA" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 设置面板里的小按钮（更改 / 打开 / 清理） -->
+        <Style x:Key="MiniBtn" TargetType="Button">
+            <Setter Property="Foreground" Value="#D8D8E4" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="7" Background="#1F1F2B"
+                                BorderBrush="#2E2E3C" BorderThickness="1"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentGoldHover}" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentGoldEdge}" />
+                                <Setter Property="Foreground" Value="{StaticResource AccentGoldText}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#33333F" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 左侧底部的「添加游戏」方块 -->
+        <Style x:Key="AddBtn" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Width="48" Height="48" CornerRadius="14"
+                                Background="#0AFFFFFF" BorderBrush="#20FFFFFF" BorderThickness="1">
+                            <Path Data="M0,0 L10,0 M5,-5 L5,5"
+                                  Stroke="#8A8A9C" StrokeThickness="1.6"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#18FFFFFF" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#3DFFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#24FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.35" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </Window.Resources>
+
+    <Grid>
+        <!-- ===== 主体：背景图铺满整个窗口，侧边栏是浮在图上的一层 ===== -->
+        <Grid>
+            <!-- ===== 左侧边栏：半透明深色，浮在背景图之上 ===== -->
+            <Grid x:Name="Sidebar" Width="64" HorizontalAlignment="Left" Panel.ZIndex="10"
+                  MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <!-- 整块均匀半透明蒙层：只提不透明度，不做左右过渡 -->
+                <Grid.Background>
+                    <SolidColorBrush Color="#4D000000" />
+                </Grid.Background>
+
+                <!-- 品牌标识：一枚金色四角星，简洁、在窄轨上也不糊 -->
+                <Path Width="20" Height="20"
+                      VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,14,0,0"
+                      ToolTip="米哈游游戏中心"
+                      Data="M10,1 C10,7 13,10 19,10 C13,10 10,13 10,19 C10,13 7,10 1,10 C7,10 10,7 10,1 Z">
+                    <Path.Fill>
+                        <LinearGradientBrush StartPoint="0.1,0" EndPoint="0.9,1">
+                            <GradientStop Color="#FFF6DC" Offset="0" />
+                            <GradientStop Color="#FBDC29" Offset="0.55" />
+                            <GradientStop Color="#D9A93F" Offset="1" />
+                        </LinearGradientBrush>
+                    </Path.Fill>
+                    <Path.Effect>
+                        <DropShadowEffect Color="#FBDC29" BlurRadius="12" ShadowDepth="0" Opacity="0.55" />
+                    </Path.Effect>
+                </Path>
+
+                <!-- 游戏图标轨 + 添加按钮（列表默认是空的） -->
+                <Grid Margin="0,46,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <ListBox x:Name="GameList" Grid.Row="0"
+                             Background="Transparent" BorderThickness="0" Padding="0,10,0,0"
+                             ItemContainerStyle="{StaticResource TileItem}"
+                             ItemTemplate="{StaticResource GameTile}"
+                             HorizontalContentAlignment="Center"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" />
+
+                    <Button x:Name="BtnAdd" Grid.Row="1"
+                            Style="{StaticResource AddBtn}"
+                            HorizontalAlignment="Center" Margin="0,0,0,14"
+                            ToolTip="添加游戏目录" Click="BtnAdd_Click" />
+                </Grid>
+
+            </Grid>
+
+            <Grid x:Name="DetailRoot" ClipToBounds="True" Opacity="1">
+                <Grid.RenderTransform>
+                    <TranslateTransform x:Name="DetailTranslate" Y="0" />
+                </Grid.RenderTransform>
+
+                <!-- 兜底色 / 取不到官方背景图时按游戏主色生成的柔光 -->
+                <Border x:Name="Backdrop" Background="#12121A" />
+
+                <!-- 同一张图的低清放大版，读图/切图的一瞬间先垫住，避免露底色 -->
+                <Image x:Name="BackdropBlur" Stretch="UniformToFill" Opacity="0"
+                       RenderOptions.BitmapScalingMode="LowQuality" />
+
+                <!--
+                    官方详情页背景图。两张 Image 轮着用：新图在背后那张淡入、旧图淡出，
+                    这样多张背景轮播时是交叉淡化而不是硬切。
+                    UniformToFill：铺满窗口、裁掉多余部分（官方就是这个做法，不再留两侧糊边）。
+                    每张图各自带一个缓慢放大的 ScaleTransform（Ken Burns），静态图也有呼吸感。
+                -->
+                <Grid x:Name="BackdropLayers" ClipToBounds="True">
+                    <Image x:Name="BackdropA" Stretch="UniformToFill" Opacity="0"
+                           RenderOptions.BitmapScalingMode="HighQuality"
+                           RenderTransformOrigin="0.5,0.5">
+                        <Image.RenderTransform>
+                            <ScaleTransform x:Name="BackdropZoomA" ScaleX="1" ScaleY="1" />
+                        </Image.RenderTransform>
+                    </Image>
+
+                    <Image x:Name="BackdropB" Stretch="UniformToFill" Opacity="0"
+                           RenderOptions.BitmapScalingMode="HighQuality"
+                           RenderTransformOrigin="0.5,0.5">
+                        <Image.RenderTransform>
+                            <ScaleTransform x:Name="BackdropZoomB" ScaleX="1" ScaleY="1" />
+                        </Image.RenderTransform>
+                    </Image>
+                </Grid>
+
+                <!-- 紧贴边栏的内侧阴影：让边栏看起来浮在背景图之上 -->
+                <Border IsHitTestVisible="False" HorizontalAlignment="Left" Width="30">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="#3D000000" Offset="0" />
+                            <GradientStop Color="#00000000" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
+                <!-- 底部压暗：只压最下面一条，保证按钮和文字可读，图片主体保持原色 -->
+                <Border IsHitTestVisible="False">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#00000000" Offset="0.30" />
+                            <GradientStop Color="#A60E0E14" Offset="0.70" />
+                            <GradientStop Color="#E60E0E14" Offset="0.92" />
+                            <GradientStop Color="#F20E0E14" Offset="1.0" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
+                <!-- 左侧压暗：只够把文字和图片分开，不要整片发灰 -->
+                <Border IsHitTestVisible="False">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="#4D0E0E14" Offset="0" />
+                            <GradientStop Color="#000E0E14" Offset="0.42" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
+                <!-- ===== 游戏详情 ===== -->
+                <Grid x:Name="DetailContent" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- 状态胶囊：平时整个藏起来（"就绪"没有任何信息量），
+                         只有运行中 / 出错 / 操作反馈时才浮出来 -->
+                    <Border x:Name="StatusPill" Grid.Row="0" Visibility="Collapsed"
+                            HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Margin="0,58,28,0"
+                            CornerRadius="11" Background="#4D000000" Padding="12,5">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse x:Name="StatusDot" Width="6" Height="6" Fill="#C9C9DA"
+                                     Margin="0,0,7,0" VerticalAlignment="Center" />
+                            <TextBlock x:Name="TxtStatus" Text=""
+                                       Foreground="#EDEDF5" FontSize="12" />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Grid.Row="2" Margin="134,0,46,38">
+                        <!-- 有官方背景图时由图上的 logo 承担识别，这里只在没有图时兜底显示游戏名 -->
+                        <TextBlock x:Name="TxtName" Text="—"
+                                   Foreground="#FFFFFF" FontSize="40" FontWeight="Medium"
+                                   TextOptions.TextRenderingMode="ClearType" />
+
+                        <!-- 元信息一行：区服 → 版本 → 更新状态 → 上次启动，字号统一 12，
+                             靠间距分组而不是靠一堆分隔符，颜色按信息重要度递减 -->
+                        <StackPanel Orientation="Horizontal" Margin="0,13,0,0">
+                            <Border x:Name="ServerPill" CornerRadius="5" Padding="8,2.5" VerticalAlignment="Center">
+                                <TextBlock x:Name="TxtServer" Text="—" FontSize="11" FontWeight="SemiBold" />
+                            </Border>
+                            <TextBlock x:Name="TxtVersion" Text="v0.0.0"
+                                       Foreground="#C8C8D6" FontSize="13" Margin="11,0,0,0"
+                                       VerticalAlignment="Center" />
+                            <TextBlock x:Name="TxtUpdateInfo" Text=""
+                                       Foreground="#A2A2B6" FontSize="12" Margin="12,0,0,0"
+                                       VerticalAlignment="Center" />
+                            <TextBlock x:Name="TxtMeta" Text=""
+                                       Foreground="#9696AA" FontSize="12" Margin="14,0,0,0"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <!-- 主按钮更高更宽，副按钮压矮一档并垂直居中，主次一眼能分出来 -->
+                        <StackPanel Orientation="Horizontal" Margin="0,26,0,0">
+                            <Button x:Name="BtnPlay" Style="{StaticResource PrimaryBtn}"
+                                    Content="开始游戏" MinWidth="212" Height="52"
+                                    Click="BtnPlay_Click" />
+                            <Button x:Name="BtnLauncher" Style="{StaticResource GhostBtn}"
+                                    Content="检查更新" Height="42" Margin="10,0,0,0"
+                                    VerticalAlignment="Center" Click="BtnLauncher_Click" />
+                        </StackPanel>
+
+                        <!-- 绝区零专用：官方把 DX12 开关放在「开始游戏」按钮正下方，位置照抄。
+                             官方只在符合条件的显卡上显示；这里始终显示，靠小字提示硬件要求，
+                             免得显卡名识别不准把功能藏起来。 -->
+                        <CheckBox x:Name="CbDx12" Style="{StaticResource Dx12Check}"
+                                  Visibility="Collapsed" Margin="2,16,0,0"
+                                  HorizontalAlignment="Left"
+                                  Checked="CbDx12_Changed" Unchecked="CbDx12_Changed">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="使用 DX12 模式启动" VerticalAlignment="Center" />
+                                <TextBlock Text="首次启用会编译着色器 · 需要 RTX 20 系 / RX 7000 以上显卡"
+                                           Foreground="#79798E" FontSize="12"
+                                           Margin="9,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </CheckBox>
+
+                        <!-- 安装位置：前面一个小文件夹图标，路径压暗，完整路径放 ToolTip -->
+                        <StackPanel Orientation="Horizontal" Margin="2,15,0,0">
+                            <Path Data="M1,2.6 L5.2,2.6 L6.6,4.4 L13,4.4 L13,11.2 L1,11.2 Z"
+                                  Stroke="#6B6B80" StrokeThickness="1.1" StrokeLineJoin="Round"
+                                  VerticalAlignment="Center" Margin="0,0,7,1" />
+                            <TextBlock x:Name="TxtPath" Text=""
+                                       Foreground="#A0A0B4" FontSize="12"
+                                       TextTrimming="CharacterEllipsis" MaxWidth="700"
+                                       HorizontalAlignment="Left" VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <!-- 只在系统缺少 WebP 解码能力时出现，说明为什么没有背景图 -->
+                        <TextBlock x:Name="TxtNotice" Text="" Visibility="Collapsed"
+                                   Foreground="{StaticResource AccentGoldText}" FontSize="12" Margin="2,8,0,0"
+                                   TextWrapping="Wrap" MaxWidth="760"
+                                   HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- ===== 空状态：还没添加游戏 ===== -->
+                <Grid x:Name="EmptyState" Visibility="Visible">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="520">
+                        <Border Width="76" Height="76" CornerRadius="24"
+                                Background="#12FFFFFF" BorderBrush="#26FFFFFF" BorderThickness="1"
+                                HorizontalAlignment="Center">
+                            <TextBlock Text="＋" FontSize="30" Foreground="#8A8A9C"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+
+                        <TextBlock Text="还没有添加游戏"
+                                   Foreground="#FFFFFF" FontSize="23" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center" Margin="0,22,0,0" />
+
+                        <TextBlock Text="选择一个游戏安装目录，程序会自动识别游戏、区服和版本号。"
+                                   Foreground="#8A8A9C" FontSize="13.5" TextWrapping="Wrap"
+                                   TextAlignment="Center" HorizontalAlignment="Center" Margin="0,10,0,0" />
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,26,0,0">
+                            <Button Style="{StaticResource PrimaryBtn}" Content="添加游戏目录"
+                                    Background="{StaticResource AccentGold}" Width="176" Height="50"
+                                    Click="BtnAdd_Click" />
+                            <Button x:Name="BtnAutoScan" Style="{StaticResource GhostBtn}"
+                                    Content="自动扫描常见位置" Height="50" Padding="20,0"
+                                    Margin="12,0,0,0" Click="BtnAutoScan_Click" />
+                        </StackPanel>
+
+                        <TextBlock x:Name="TxtBusy" Text=""
+                                   Foreground="{StaticResource AccentGoldText}" FontSize="12.5"
+                                   HorizontalAlignment="Center" Margin="0,16,0,0" />
+
+                        <TextBlock Text="可以选到 YuanShen.exe / StarRail.exe / ZenlessZoneZero.exe 所在的那一层，也可以直接选它们的上层文件夹。"
+                                   Foreground="#8E8EA2" FontSize="12" TextWrapping="Wrap"
+                                   TextAlignment="Center" HorizontalAlignment="Center"
+                                   Margin="0,18,0,0" MaxWidth="440" />
+                    </StackPanel>
+                </Grid>
+
+            </Grid>
+        </Grid>
+
+        <!-- ===== 标题栏：只覆盖详情区，左侧边栏不参与这一条渐变 ===== -->
+        <Grid x:Name="TitleBar" Height="46" VerticalAlignment="Top" Panel.ZIndex="20"
+              MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <Border x:Name="TitleBarFade" Margin="64,0,0,0">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#66000000" Offset="0" />
+                        <GradientStop Color="#00000000" Offset="1" />
+                    </LinearGradientBrush>
+                </Border.Background>
+            </Border>
+
+            <!-- 位置按官方实测：关闭键中心距右边 30 DIP，相邻图标中心距 44 DIP，纵向中心距顶 21 DIP。
+                 官方顺序是「齿轮 / 最小化 / 关闭」，三个都是 32 宽按钮，彼此再留 12 的间距。 -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                        VerticalAlignment="Top" Margin="0,5,14,0">
+                <!-- 和最小化的间距要跟「最小化↔关闭」一致（12 额外间距 = 44 DIP 中心距），
+                     否则齿轮会貼得比官方近，中心落在 106 而不是官方实测的 118.3。 -->
+                <Button x:Name="BtnSettings" Style="{StaticResource ChromeBtn}"
+                        Margin="0,0,12.9,0" Click="BtnSettings_Click">
+                    <!-- 正六边形：尖角朝左右、上下各一条水平边（外接圆 17.3 DIP，线宽 2 DIP）。
+                         六个顶点按 0/60/120/180/240/300 度算好，中心 (10,10)。
+                         两个形状都用 20×20 + Stretch=None + 绝对坐标：坐标即最终位置，
+                         不会再被 LayoutRounding 各自取整到不同像素边界（否则内圆会偏右下约 0.4 DIP）。 -->
+                    <Grid Width="20" Height="20">
+                        <Grid.RenderTransform>
+                            <!-- 20 高的容器让六边形居中后比另两个图标低 1 DIP（LayoutRounding 取整），上提对齐 -->
+                            <TranslateTransform Y="-1" />
+                        </Grid.RenderTransform>
+                        <Path Stretch="None" Width="20" Height="20"
+                              Data="M18.65,10 L14.325,17.49 L5.675,17.49 L1.35,10 L5.675,2.51 L14.325,2.51 Z"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="2" StrokeLineJoin="Round" />
+                        <!-- 内环圆心就是 (10,10)，半径 3.35（外径与原来 6.7 的 Ellipse 一致），
+                             线宽跟外六边形统一成 2，两个圈看起来才像一套图标 -->
+                        <Path Stretch="None" Width="20" Height="20"
+                              Data="M13.35,10 A3.35,3.35 0 1 1 6.65,10 A3.35,3.35 0 1 1 13.35,10 Z"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="2" />
+                    </Grid>
+                </Button>
+                <Button Style="{StaticResource ChromeBtn}" Click="BtnMin_Click">
+                    <Grid Width="13" Height="13">
+                        <Rectangle Width="13" Height="2" RadiusX="1" RadiusY="1"
+                                   Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+                <Button Style="{StaticResource ChromeBtn}" Click="BtnClose_Click"
+                        Margin="12,0,0,0">
+                    <Grid Width="13" Height="13">
+                        <Path Data="M0.9,0.9 L12.1,12.1 M12.1,0.9 L0.9,12.1"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- ===== 设置弹窗：点齿轮后在窗口正中弹出，周dim一层半透明黑。
+             只能通过右上角关闭按钮关闭：点外部区域、Esc 都不关。 ===== -->
+        <Grid x:Name="SettingsOverlay" Background="Transparent" Visibility="Collapsed"
+              Panel.ZIndex="60">
+            <Border Background="#990A0A10" />
+
+            <!-- 官方弹窗实测：799×480 DIP 居中、底色 #1E2025、左导航 239 DIP（选中块淡金）、
+                 右侧内容面板整块 #212429 全高、面板上的小节卡片 #292C30（左右各留约 32/30 DIP）。
+                 圆角用 Clip 真正裁掉子内容——只写 CornerRadius 的话，右侧那块深色面板会把
+                 右上/右下角切成直角，看起来像没圆角。 -->
+            <Border x:Name="SettingsPanel" Width="800" Height="520"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    CornerRadius="12" ClipToBounds="True"
+                    Background="#1E2025">
+                <Border.Clip>
+                    <RectangleGeometry Rect="0,0,800,520" RadiusX="12" RadiusY="12" />
+                </Border.Clip>
+                <Border.RenderTransform>
+                    <ScaleTransform x:Name="SettingsScale" ScaleX="1" ScaleY="1" />
+                </Border.RenderTransform>
+                <Border.Effect>
+                    <DropShadowEffect Color="#000000" BlurRadius="42" Opacity="0.6" ShadowDepth="0" />
+                </Border.Effect>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="239" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- ===== 左侧导航（官方 239 DIP） ===== -->
+                    <StackPanel Grid.Column="0" Margin="24,26,16,16">
+                        <TextBlock Text="设置" Foreground="#FAFAFA" FontSize="15"
+                                   FontWeight="SemiBold" Margin="16,0,0,20" />
+                        <RadioButton x:Name="NavGeneral" Style="{StaticResource NavRadio}"
+                                     GroupName="SettingsNav" IsChecked="True"
+                                     Checked="SettingsNav_Changed" Tag="General">通用</RadioButton>
+                        <RadioButton x:Name="NavUi" Style="{StaticResource NavRadio}"
+                                     GroupName="SettingsNav" Checked="SettingsNav_Changed" Tag="Ui">界面</RadioButton>
+                        <RadioButton x:Name="NavStorage" Style="{StaticResource NavRadio}"
+                                     GroupName="SettingsNav" Checked="SettingsNav_Changed" Tag="Storage">存储</RadioButton>
+                        <RadioButton x:Name="NavAbout" Style="{StaticResource NavRadio}"
+                                     GroupName="SettingsNav" Checked="SettingsNav_Changed" Tag="About">关于</RadioButton>
+                    </StackPanel>
+
+                    <!-- 右侧内容面板：官方是一整块 #212429，从面板顶铺到底 -->
+                    <Border Grid.Column="1" Background="#212429" />
+
+                    <!-- 右上角关闭：必须放在 ScrollViewer 之后。ScrollViewer 铺满右侧整列，
+                         先加的话会把按钮盖住，鼠标点上去落在滚动区上——表现就是"位置漂移、点不中"。 -->
+                    <Button Grid.Column="1" Style="{StaticResource ChromeBtn}" Width="32" Height="32"
+                            Panel.ZIndex="3"
+                            HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Margin="0,14,12,0"
+                            Click="BtnSettingsClose_Click">
+                        <Path Data="M1,1 L11,11 M11,1 L1,11"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="1.8" StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Button>
+
+                    <!-- ===== 右侧内容 ===== -->
+                    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Margin="30,26,44,18">
+                        <StackPanel>
+
+                            <!-- ===== 通用 ===== -->
+                            <StackPanel x:Name="TabGeneral">
+                                <TextBlock Text="通用" Foreground="#FAFAFA" FontSize="18"
+                                           FontWeight="SemiBold" />
+
+                                <TextBlock Text="启动设置" Foreground="#8E8E9E" FontSize="12"
+                                           Margin="2,18,0,8" />
+                                <Border Background="#292C30" CornerRadius="12">
+                                    <StackPanel>
+                                        <Grid Margin="16,13">
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="开机自动启动" Foreground="#ECECF4" FontSize="13.5" />
+                                                <TextBlock Text="登录 Windows 后自动在后台打开"
+                                                           Foreground="#9494AA" FontSize="12" Margin="0,3,0,0" />
+                                            </StackPanel>
+                                            <CheckBox x:Name="SwAutoStart" Style="{StaticResource Switch}"
+                                                      HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                      Click="SwAutoStart_Click" />
+                                        </Grid>
+                                        <Border Height="1" Background="#0FFFFFFF" />
+                                        <Grid Margin="16,13">
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="启动时检查更新" Foreground="#ECECF4" FontSize="13.5" />
+                                                <TextBlock Text="联网比对官方版本号，关掉后启动更快"
+                                                           Foreground="#9494AA" FontSize="12" Margin="0,3,0,0" />
+                                            </StackPanel>
+                                            <CheckBox x:Name="SwCheckUpdate" Style="{StaticResource Switch}"
+                                                      HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                      Click="SwCheckUpdate_Click" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ===== 界面 ===== -->
+                            <StackPanel x:Name="TabUi" Visibility="Collapsed">
+                                <TextBlock Text="界面" Foreground="#FAFAFA" FontSize="18"
+                                           FontWeight="SemiBold" />
+
+                                <TextBlock Text="背景" Foreground="#8E8E9E" FontSize="12"
+                                           Margin="2,18,0,8" />
+                                <Border Background="#292C30" CornerRadius="12">
+                                    <StackPanel>
+                                        <Grid Margin="16,13">
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="背景自动轮播" Foreground="#ECECF4" FontSize="13.5" />
+                                                <TextBlock Text="官方一次给多张图，关掉后停在最近一张"
+                                                           Foreground="#9494AA" FontSize="12" Margin="0,3,0,0" />
+                                            </StackPanel>
+                                            <CheckBox x:Name="SwCarousel" Style="{StaticResource Switch}"
+                                                      HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                      Click="SwCarousel_Click" />
+                                        </Grid>
+                                        <Border Height="1" Background="#0FFFFFFF" />
+                                        <Grid Margin="16,13">
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="轮播间隔" Foreground="#ECECF4" FontSize="13.5" />
+                                                <TextBlock Text="每张图停留的时间"
+                                                           Foreground="#9494AA" FontSize="12" Margin="0,3,0,0" />
+                                            </StackPanel>
+                                            <ComboBox x:Name="CmbInterval" Style="{StaticResource DarkCombo}"
+                                                      HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                      ItemContainerStyle="{StaticResource DarkComboItem}"
+                                                      SelectionChanged="CmbInterval_SelectionChanged">
+                                                <ComboBoxItem Content="6 秒" />
+                                                <ComboBoxItem Content="10 秒" />
+                                                <ComboBoxItem Content="15 秒" />
+                                                <ComboBoxItem Content="30 秒" />
+                                            </ComboBox>
+                                        </Grid>
+                                        <Border Height="1" Background="#0FFFFFFF" />
+                                        <Grid Margin="16,13">
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="背景清晰度" Foreground="#ECECF4" FontSize="13.5" />
+                                                <TextBlock Text="越低越省内存，画面会略软"
+                                                           Foreground="#9494AA" FontSize="12" Margin="0,3,0,0" />
+                                            </StackPanel>
+                                            <ComboBox x:Name="CmbQuality" Style="{StaticResource DarkCombo}"
+                                                      HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                      ItemContainerStyle="{StaticResource DarkComboItem}"
+                                                      SelectionChanged="CmbQuality_SelectionChanged">
+                                                <ComboBoxItem Content="自动" />
+                                                <ComboBoxItem Content="1280" />
+                                                <ComboBoxItem Content="1600" />
+                                                <ComboBoxItem Content="1920" />
+                                                <ComboBoxItem Content="2560" />
+                                            </ComboBox>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ===== 存储 ===== -->
+                            <StackPanel x:Name="TabStorage" Visibility="Collapsed">
+                                <TextBlock Text="存储" Foreground="#FAFAFA" FontSize="18"
+                                           FontWeight="SemiBold" />
+
+                                <TextBlock Text="素材" Foreground="#8E8E9E" FontSize="12"
+                                           Margin="2,18,0,8" />
+                                <Border Background="#292C30" CornerRadius="12" Padding="16,14">
+                                    <StackPanel>
+                                        <Grid>
+                                            <TextBlock Text="素材缓存" Foreground="#ECECF4"
+                                                       FontSize="13.5" VerticalAlignment="Center" />
+                                            <Button Style="{StaticResource MiniBtn}" Content="更改"
+                                                    HorizontalAlignment="Right"
+                                                    Click="BtnPickCacheDir_Click" />
+                                        </Grid>
+                                        <TextBlock Text="背景图等联网素材存在这里，换到空间大的盘更合适"
+                                                   Foreground="#9494AA" FontSize="12" Margin="0,4,0,8"
+                                                   TextWrapping="Wrap" />
+                                        <TextBlock x:Name="TxtCacheDir" Text="—"
+                                                   Foreground="#A9A9BC" FontSize="12"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                            <Button Style="{StaticResource MiniBtn}" Content="打开文件夹"
+                                                    Click="BtnOpenCache_Click" />
+                                            <Button Style="{StaticResource MiniBtn}" Content="清理缓存"
+                                                    Margin="8,0,0,0" Click="BtnClearCache_Click" />
+                                            <TextBlock x:Name="TxtCacheSize" Text=""
+                                                       Foreground="#9494AA" FontSize="12"
+                                                       VerticalAlignment="Center" Margin="10,0,0,0" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ===== 关于 ===== -->
+                            <StackPanel x:Name="TabAbout" Visibility="Collapsed">
+                                <TextBlock Text="关于" Foreground="#FAFAFA" FontSize="18"
+                                           FontWeight="SemiBold" />
+
+                                <TextBlock Text="版本" Foreground="#8E8E9E" FontSize="12"
+                                           Margin="2,18,0,8" />
+                                <Border Background="#292C30" CornerRadius="12" Padding="16,14">
+                                    <Grid>
+                                        <StackPanel>
+                                            <TextBlock Text="米哈游游戏中心" Foreground="#ECECF4" FontSize="13.5" />
+                                            <TextBlock x:Name="TxtAppVersion" Text="版本 —"
+                                                       Foreground="#9494AA" FontSize="12" Margin="0,5,0,0" />
+                                            <TextBlock Text="第三方启动器，与米哈游官方无关"
+                                                       Foreground="#9494AA" FontSize="12" Margin="0,2,0,0" />
+                                            <TextBlock Text="字体：HarmonyOS Sans（华为）"
+                                                       Foreground="#6F6F84" FontSize="11.5" Margin="0,10,0,0" />
+                                            <TextBlock x:Name="TxtConfigPath" Text=""
+                                                       Foreground="#6F6F84" FontSize="11"
+                                                       Margin="0,6,0,0" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <Button Style="{StaticResource MiniBtn}" Content="打开配置目录"
+                                                VerticalAlignment="Top" HorizontalAlignment="Right"
+                                                Click="BtnOpenConfig_Click" />
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- 外描边画在最上层：Border 自己的 BorderBrush 会被内层的深色面板盖住，
+                         只有叠在最上面这一层才能得到一圈完整的细白边 -->
+                    <Border Grid.ColumnSpan="2" IsHitTestVisible="False"
+                            CornerRadius="12" BorderThickness="1" BorderBrush="#5CFFFFFF" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

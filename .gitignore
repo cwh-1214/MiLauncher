@@ -1,0 +1,16 @@
+# ===== 构建产物 =====
+bin/
+obj/
+publish/
+
+# ===== 本机配置与证书 =====
+tools/signing.local.json
+*.pfx
+*.user
+.vs/
+.vscode/
+
+# ===== 系统 =====
+Thumbs.db
+desktop.ini
+.DS_Store

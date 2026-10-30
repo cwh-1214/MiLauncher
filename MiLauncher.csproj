@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>MiLauncher</AssemblyName>
+    <RootNamespace>MiLauncher</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <Version>0.2.0</Version>
+    <Product>米哈游游戏中心</Product>
+    <AssemblyTitle>米哈游游戏中心</AssemblyTitle>
+    <Company>MiLauncher</Company>
+    <Copyright>Copyright © 2026 MiLauncher</Copyright>
+    <FileVersion>0.2.0.0</FileVersion>
+    <AssemblyVersion>0.2.0.0</AssemblyVersion>
+    <Description>米哈游游戏快速启动器（原神 / 星穹铁道 / 绝区零 / 崩坏3）</Description>
+    <NeutralLanguage>zh-Hans</NeutralLanguage>
+  </PropertyGroup>
+
+  <!-- 字体嵌进 exe：用户不需要安装任何字体。
+       HarmonyOS Sans SC 只带 Regular / Medium 两档（各约 8MB），Melete 只有几 KB。
+       许可证放在同目录，随源码保留。 -->
+  <ItemGroup>
+    <Resource Include="Assets\Fonts\*.ttf" />
+    <Resource Include="Assets\Fonts\*.otf" />
+  </ItemGroup>
+
+</Project>
