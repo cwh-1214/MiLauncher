@@ -1,5 +1,7 @@
 # 米哈游游戏中心 · MiLauncher
 
+[![build](https://github.com/cwh-1214/MiLauncher/actions/workflows/build.yml/badge.svg)](https://github.com/cwh-1214/MiLauncher/actions/workflows/build.yml)
+
 一个轻量的米哈游游戏启动器，用 WPF / .NET 8 重写了官方启动器那套界面：无边框窗口、官方背景图轮播、一键启动游戏。
 
 > **这不是官方软件。** 本项目为个人学习作品，与米哈游（miHoYo / HoYoverse）无关。
@@ -28,6 +30,8 @@
 1. 从 [Releases](../../releases) 下载 `MiLauncher.exe`
 2. 双击运行。首次启动会自动扫描已安装的游戏
 3. 没扫描到就在设置里用「添加游戏目录」，选到游戏主程序（比如 `YuanShen.exe`）即可
+
+Release 里的 exe 由 GitHub Actions 从本仓库的 tag 自动构建（见 [.github/workflows/build.yml](.github/workflows/build.yml)），不是手工上传的，可以对着源码复核。
 
 ### 关于「Windows 已保护你的电脑」
 
