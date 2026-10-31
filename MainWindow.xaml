@@ -787,7 +787,8 @@
                         </CheckBox>
 
                         <!-- 安装位置：前面一个小文件夹图标，路径压暗，完整路径放 ToolTip。
-                             设置里可以整行隐藏；隐藏时「开始游戏」的位置不受影响（它在这行上面）。 -->
+                             设置里可以整行隐藏：普通游戏保留占位（Hidden），按钮不动；
+                             绝区零真收起（Collapsed）让整块下移，DX12 顶到这一行的位置。 -->
                         <StackPanel x:Name="PathRow" Orientation="Horizontal" Margin="2,15,0,0">
                             <Path Data="M1,2.6 L5.2,2.6 L6.6,4.4 L13,4.4 L13,11.2 L1,11.2 Z"
                                   Stroke="#6B6B80" StrokeThickness="1.1" StrokeLineJoin="Round"

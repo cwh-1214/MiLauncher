@@ -2462,46 +2462,27 @@ namespace MiLauncher
         }
 
         /// <summary>
-        /// 「隐藏安装路径」的落地逻辑。详情区是按底部对齐的（Grid 第二行是 *），
-        /// 所以直接 Collapsed 会让整块往下掉、连「开始游戏」一起动 —— 这里做了区分：
-        /// 普通游戏用 Hidden 保留那一行的占位，高度不变、按钮纹丝不动；
-        /// 绝区零把 DX12 开关顶到路径原来的位置（它下面没有别的东西，高度自然接得住）。
+        /// 「隐藏安装路径」的落地逻辑。详情区是按底部对齐的（Grid 中间行是 *），
+        /// 少一行会让整块往下掉，两种游戏的期望不同：
+        /// - 普通游戏：用 Hidden 保留占位，只是不画路径 → 块高不变，「开始游戏」原地不动；
+        /// - 绝区零：用 Collapsed 让它真的少一行 → 整块下移，DX12 顶到路径原来的位置。
+        ///
+        /// 剩下那 2 DIP：绝区零收起后只剩「按钮 + 16 + DX12」，比普通游戏的「按钮 + 15 + 路径行」
+        /// 略高一点，底部对齐下块高的那一边按钮就更高，实测差 2。所以收起时把 DX12 的上间距
+        /// 从 16 收到 14，两种游戏的「开始游戏」才会真的落在同一条水平线上。
         /// </summary>
-        private double _pathRowHeight;
-
         private void ApplyDetailPathSettings()
         {
             bool hide = _config != null && _config.HideInstallPath;
             bool hasDx12 = CbDx12.Visibility == Visibility.Visible;
 
-            // 路径行显示着的时候记下真实高度；收起后 ActualHeight 归零，用实测值兜底
-            if (PathRow.Visibility == Visibility.Visible && PathRow.ActualHeight > 0)
-            {
-                _pathRowHeight = PathRow.ActualHeight;
-            }
-
-            double pathHeight = _pathRowHeight > 0 ? _pathRowHeight : 16.0;
+            PathRow.Visibility = hide
+                ? (hasDx12 ? Visibility.Collapsed : Visibility.Hidden)
+                : Visibility.Visible;
 
             if (hasDx12)
             {
-                // 绝区零：DX12 顶到路径原来的位置上。
-                // 顶边距 = 原间距(16) + 原间隙(15) + 路径行高，这样"下面总高度"和隐藏前完全一致，
-                // 按底部对齐的详情块才不会整体位移，「开始游戏」纹丝不动。
-                PathRow.Visibility = hide ? Visibility.Collapsed : Visibility.Visible;
-                CbDx12.Margin = new Thickness(2, hide ? 31 + pathHeight : 16, 0, 0);
-            }
-            else
-            {
-                // 其它游戏：只是不画路径，位置留着，Block 高度不变
-                PathRow.Visibility = hide ? Visibility.Hidden : Visibility.Visible;
-                CbDx12.Margin = new Thickness(2, 16, 0, 0);
-            }
-
-            // 首次显示时高度还没量出来（用了兜底值），布局完成后再算一遍
-            if (hide && hasDx12 && _pathRowHeight <= 0)
-            {
-                Dispatcher.BeginInvoke(new Action(ApplyDetailPathSettings),
-                                       System.Windows.Threading.DispatcherPriority.Loaded);
+                CbDx12.Margin = new Thickness(2, hide ? 14 : 16, 0, 0);
             }
         }
 
