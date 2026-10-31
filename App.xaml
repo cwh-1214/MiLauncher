@@ -19,12 +19,7 @@
         <SolidColorBrush x:Key="TextSecondary" Color="#9A9AAC" />
         <SolidColorBrush x:Key="TextTertiary" Color="#6C6C7E" />
 
-        <!-- ToolTip 是独立弹出窗口，不继承窗口字体，这里兜底。
-             侧栏气泡有自己的 Style（TileTip），字体在那个模板里单独写。
-             右键菜单/下拉列表已经改成窗口内浮层，不再需要 ContextMenu 样式。 -->
-        <Style TargetType="ToolTip">
-            <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-            <Setter Property="FontSize" Value="12" />
-        </Style>
+        <!-- 提示气泡（ToolTip）仍然走系统字体：Popup 拿不到 ClearType，
+             鸿蒙 Sans 没有 hinting，小字在灰度抗锯齿下反而不如系统雅黑实。 -->
     </Application.Resources>
 </Application>

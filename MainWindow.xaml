@@ -57,7 +57,8 @@
         <!-- 侧栏图标的气泡提示：默认 ToolTip 是白底细边，在深色界面上很跳。
              这里重画成深色圆角气泡，左侧留一个小尖角指向图标，从图标右边弹出。 -->
         <Style x:Key="TileTip" TargetType="ToolTip">
-            <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+            <!-- 字体故意不设：气泡是 Popup（分层窗口），只有灰度抗锯齿，
+                 鸿蒙 Sans 没有 hinting，反而不如系统雅黑来得实。Display 排版让笔画更贴像素。 -->
             <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
             <Setter Property="Placement" Value="Right" />
             <Setter Property="HorizontalOffset" Value="8" />
