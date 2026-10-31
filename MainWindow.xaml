@@ -58,6 +58,7 @@
              这里重画成深色圆角气泡，左侧留一个小尖角指向图标，从图标右边弹出。 -->
         <Style x:Key="TileTip" TargetType="ToolTip">
             <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
             <Setter Property="Placement" Value="Right" />
             <Setter Property="HorizontalOffset" Value="8" />
             <!-- Placement=Right 是把气泡的「顶边」对齐到格子上沿的，所以往下推半个格子的高度，
@@ -457,22 +458,12 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ComboBox">
+                        <!-- 下拉列表不再用 Popup：Popup 是分层窗口，文字只能灰度抗锯齿。
+                             这里只画"收起状态"的外观，展开的列表由窗口内的 ComboOverlay 负责
+                             （见 ShowComboDrop），文字就能和主界面一样走 ClearType。 -->
                         <Grid>
-                            <!-- 铺满整个控件的透明开关，只负责"点一下开/关下拉" -->
-                            <ToggleButton x:Name="DropToggle" Focusable="False" ClickMode="Press"
-                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay,
-                                                      RelativeSource={RelativeSource TemplatedParent}}">
-                                <ToggleButton.Template>
-                                    <ControlTemplate TargetType="ToggleButton">
-                                        <Border Background="Transparent" />
-                                    </ControlTemplate>
-                                </ToggleButton.Template>
-                            </ToggleButton>
-
-                            <!-- 视觉层统一不参与命中测试，鼠标事件全部落到上面那个 ToggleButton -->
                             <Border x:Name="Bd" CornerRadius="8" Background="#1F1F2B"
-                                    BorderBrush="#2E2E3C" BorderThickness="1"
-                                    IsHitTestVisible="False" />
+                                    BorderBrush="#2E2E3C" BorderThickness="1" />
                             <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
                                               Margin="11,0,26,0"
                                               HorizontalAlignment="Left" VerticalAlignment="Center"
@@ -482,56 +473,19 @@
                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                   HorizontalAlignment="Right" VerticalAlignment="Center"
                                   Margin="0,0,11,0" IsHitTestVisible="False" />
-                            <!-- 下拉宽度至少和控件一样，短选项（6 秒 / 自动）不会缩成一条小条 -->
-                            <Popup x:Name="PART_Popup" Placement="Bottom"
-                                   AllowsTransparency="True" Focusable="False"
-                                   PopupAnimation="Fade" IsOpen="{TemplateBinding IsDropDownOpen}">
-                                <Border Background="#1C1C26" CornerRadius="8" Margin="3"
-                                       MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
-                                       BorderBrush="#2E2E3C" BorderThickness="1">
-                                    <Border.Effect>
-                                        <DropShadowEffect Color="#000000" BlurRadius="14"
-                                                          Opacity="0.55" ShadowDepth="0" />
-                                    </Border.Effect>
-                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
-                                </Border>
-                            </Popup>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentGoldHover}" />
                                 <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentGoldEdge}" />
                             </Trigger>
-                            <Trigger Property="IsDropDownOpen" Value="True">
+                            <!-- 列表展开时由代码把 Tag 设成 Open，边框亮起来 -->
+                            <Trigger Property="Tag" Value="Open">
                                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentGoldFill}" />
                                 <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentGoldEdge}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.45" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="DarkComboItem" TargetType="ComboBoxItem">
-            <Setter Property="Foreground" Value="#D8D8E4" />
-            <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Padding" Value="11,7" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ComboBoxItem">
-                        <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentGoldFill}" />
-                                <Setter Property="Foreground" Value="{StaticResource AccentGoldText}" />
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Foreground" Value="{StaticResource AccentGoldText}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -1081,7 +1035,7 @@
                                             </StackPanel>
                                             <ComboBox x:Name="CmbInterval" Style="{StaticResource DarkCombo}"
                                                       HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                      ItemContainerStyle="{StaticResource DarkComboItem}"
+                                                      PreviewMouseLeftButtonDown="CmbInterval_PreviewMouseLeftButtonDown"
                                                       SelectionChanged="CmbInterval_SelectionChanged">
                                                 <ComboBoxItem Content="6 秒" />
                                                 <ComboBoxItem Content="10 秒" />
@@ -1184,6 +1138,36 @@
                             CornerRadius="12" BorderThickness="1" BorderBrush="#5CFFFFFF" />
                 </Grid>
             </Border>
+        </Grid>
+
+        <!-- ===== 右键菜单：画在窗口里，不再用 ContextMenu =====
+             ContextMenu 是独立弹出窗口（分层），文字只能灰度抗锯齿；
+             放到窗口内之后和主界面同一套渲染，小字明显更实。 -->
+        <Grid x:Name="MenuOverlay" Visibility="Collapsed" Panel.ZIndex="85" Focusable="True"
+              Background="Transparent"
+              MouseLeftButtonDown="MenuOverlay_MouseLeftButtonDown"
+              PreviewKeyDown="MenuOverlay_PreviewKeyDown">
+            <Canvas>
+                <Border x:Name="TileMenu" Visibility="Collapsed"
+                        Background="#1F1F2A" BorderBrush="#33FFFFFF" BorderThickness="1"
+                        CornerRadius="8" Padding="4">
+                    <StackPanel x:Name="TileMenuItems" />
+                </Border>
+            </Canvas>
+        </Grid>
+
+        <!-- ===== 下拉列表：同上，替掉 ComboBox 的 Popup ===== -->
+        <Grid x:Name="ComboOverlay" Visibility="Collapsed" Panel.ZIndex="86" Focusable="True"
+              Background="Transparent"
+              MouseLeftButtonDown="ComboOverlay_MouseLeftButtonDown"
+              PreviewKeyDown="ComboOverlay_PreviewKeyDown">
+            <Canvas>
+                <Border x:Name="ComboDrop" Visibility="Collapsed"
+                        Background="#1C1C26" BorderBrush="#2E2E3C" BorderThickness="1"
+                        CornerRadius="8" Padding="4">
+                    <StackPanel x:Name="ComboDropItems" />
+                </Border>
+            </Canvas>
         </Grid>
 
         <!-- ===== 模态对话框：画在主窗口内部，不再单开一个 AllowsTransparency 的窗口 =====

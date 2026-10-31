@@ -1740,40 +1740,220 @@ namespace MiLauncher
                 return;
             }
 
-            var menu = new ContextMenu();
-
             // 右键不会自动选中条目，先选中，这样菜单里的操作和详情页看到的是同一个游戏
             GameList.SelectedItem = game;
 
-            var openItem = new MenuItem { Header = "打开所在文件夹" };
-            openItem.Click += delegate { OpenInExplorer(game.ExeDir); };
-            menu.Items.Add(openItem);
+            ShowTileMenu(game, e.GetPosition(this));
+            e.Handled = true;
+        }
+
+        // ==================== 右键菜单（窗口内浮层） ====================
+
+        private void ShowTileMenu(GameInfo game, Point position)
+        {
+            TileMenuItems.Children.Clear();
+
+            AddMenuEntry("打开所在文件夹", false, delegate { OpenInExplorer(game.ExeDir); });
 
             // 换盘、重装到别的目录后，主程序路径会失效，这里手动指一下新位置
-            var relocateItem = new MenuItem
-            {
-                Header = game.IsInstalled ? "重新定位主程序…" : "找不到主程序 — 重新定位…"
-            };
-            relocateItem.Click += delegate { RelocateGame(game); };
-            menu.Items.Add(relocateItem);
+            AddMenuEntry(game.IsInstalled ? "重新定位主程序…" : "找不到主程序 — 重新定位…", false,
+                         delegate { RelocateGame(game); });
 
             if (!string.IsNullOrEmpty(game.LauncherPath))
             {
-                var launcherItem = new MenuItem { Header = "打开官方启动器（更新 / 修复）" };
-                launcherItem.Click += delegate { OpenLauncher(game); };
-                menu.Items.Add(launcherItem);
+                AddMenuEntry("打开官方启动器（更新 / 修复）", false, delegate { OpenLauncher(game); });
             }
 
-            // 这里原本有一条 Separator 分隔「危险操作」，去掉了：菜单本来就不长，
-            // 红色字本身已经是足够的警示，多一条线反而显得空。
-            var removeItem = new MenuItem { Header = "从列表移除" };
-            removeItem.Style = (Style)FindResource("DangerMenuItem");
-            removeItem.Click += delegate { RemoveGame(game); };
-            menu.Items.Add(removeItem);
+            // 危险操作直接跟上一项，不加分隔线：菜单不长，红字已经够醒目
+            AddMenuEntry("从列表移除", true, delegate { RemoveGame(game); });
 
-            menu.PlacementTarget = item;
-            menu.IsOpen = true;
+            MenuOverlay.Visibility = Visibility.Visible;
+            TileMenu.Visibility = Visibility.Visible;
+            MenuOverlay.Focus();
+
+            TileMenu.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            Size size = TileMenu.DesiredSize;
+            Canvas.SetLeft(TileMenu, Math.Max(6, Math.Min(position.X, ActualWidth - size.Width - 6)));
+            Canvas.SetTop(TileMenu, Math.Max(6, Math.Min(position.Y, ActualHeight - size.Height - 6)));
+        }
+
+        private void AddMenuEntry(string text, bool danger, Action action)
+        {
+            var label = new TextBlock
+            {
+                Text = text,
+                FontSize = 12.5,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = danger ? DialogBrush(0xFF, 0xF0, 0x71, 0x6B)
+                                    : DialogBrush(0xFF, 0xE8, 0xE8, 0xF0)
+            };
+
+            Brush hover = danger ? DialogBrush(0x33, 0xE0, 0x53, 0x4C)
+                                 : DialogBrush(0x2A, 0xFF, 0xFF, 0xFF);
+
+            var entry = new Border
+            {
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(12, 7, 12, 7),
+                Background = Brushes.Transparent,
+                Cursor = Cursors.Hand,
+                Child = label
+            };
+
+            entry.MouseEnter += delegate { entry.Background = hover; };
+            entry.MouseLeave += delegate { entry.Background = Brushes.Transparent; };
+            entry.MouseLeftButtonUp += delegate
+            {
+                HideTileMenu();
+                action();
+            };
+
+            TileMenuItems.Children.Add(entry);
+        }
+
+        private void HideTileMenu()
+        {
+            MenuOverlay.Visibility = Visibility.Collapsed;
+            TileMenu.Visibility = Visibility.Collapsed;
+        }
+
+        private void MenuOverlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 点在菜单自己身上时不能关：否则 MouseLeftButtonDown 先把菜单收起来，
+            // 后面的 MouseLeftButtonUp 就落空了，菜单项永远点不中
+            if (IsInside(e.OriginalSource as DependencyObject, TileMenu))
+            {
+                return;
+            }
+
+            HideTileMenu();
             e.Handled = true;
+        }
+
+        /// <summary>source 是否在 container 里面（用来区分"点菜单"还是"点外面"）。</summary>
+        private static bool IsInside(DependencyObject source, DependencyObject container)
+        {
+            while (source != null)
+            {
+                if (ReferenceEquals(source, container))
+                {
+                    return true;
+                }
+
+                source = VisualTreeHelper.GetParent(source);
+            }
+
+            return false;
+        }
+
+        private void MenuOverlay_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                HideTileMenu();
+                e.Handled = true;
+            }
+        }
+
+        // ==================== 下拉列表（窗口内浮层） ====================
+
+        private void CmbInterval_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            e.Handled = true;
+
+            if (ComboOverlay.Visibility == Visibility.Visible)
+            {
+                HideComboDrop();
+                return;
+            }
+
+            ShowComboDrop(CmbInterval);
+        }
+
+        private void ShowComboDrop(ComboBox combo)
+        {
+            ComboDropItems.Children.Clear();
+
+            for (int i = 0; i < combo.Items.Count; i++)
+            {
+                int index = i;
+                var item = combo.Items[i] as ComboBoxItem;
+                string text = item != null ? (item.Content as string ?? string.Empty) : string.Empty;
+                bool selected = combo.SelectedIndex == index;
+
+                Brush normal = selected ? DialogBrush(0xFF, 0xFB, 0xE2, 0x7A)
+                                        : DialogBrush(0xFF, 0xD8, 0xD8, 0xE4);
+
+                var label = new TextBlock
+                {
+                    Text = text,
+                    FontSize = 12.5,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Foreground = normal
+                };
+
+                Brush hover = DialogBrush(0x26, 0xFB, 0xDC, 0x29);
+                Brush hoverText = DialogBrush(0xFF, 0xFB, 0xE2, 0x7A);
+
+                var entry = new Border
+                {
+                    CornerRadius = new CornerRadius(6),
+                    Padding = new Thickness(11, 7, 11, 7),
+                    Background = Brushes.Transparent,
+                    Cursor = Cursors.Hand,
+                    Child = label
+                };
+
+                entry.MouseEnter += delegate { entry.Background = hover; label.Foreground = hoverText; };
+                entry.MouseLeave += delegate { entry.Background = Brushes.Transparent; label.Foreground = normal; };
+                entry.MouseLeftButtonUp += delegate
+                {
+                    HideComboDrop();
+                    combo.SelectedIndex = index;
+                };
+
+                ComboDropItems.Children.Add(entry);
+            }
+
+            ComboDrop.MinWidth = combo.ActualWidth;
+            ComboOverlay.Visibility = Visibility.Visible;
+            ComboDrop.Visibility = Visibility.Visible;
+            combo.Tag = "Open";
+            ComboOverlay.Focus();
+
+            ComboDrop.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            Size size = ComboDrop.DesiredSize;
+            Point anchor = combo.TranslatePoint(new Point(0, combo.ActualHeight + 4), this);
+
+            Canvas.SetLeft(ComboDrop, Math.Max(6, Math.Min(anchor.X, ActualWidth - size.Width - 6)));
+            Canvas.SetTop(ComboDrop, Math.Max(6, Math.Min(anchor.Y, ActualHeight - size.Height - 6)));
+        }
+
+        private void HideComboDrop()
+        {
+            ComboOverlay.Visibility = Visibility.Collapsed;
+            ComboDrop.Visibility = Visibility.Collapsed;
+            CmbInterval.Tag = null;
+        }
+
+        private void ComboOverlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (IsInside(e.OriginalSource as DependencyObject, ComboDrop))
+            {
+                return;
+            }
+
+            HideComboDrop();
+            e.Handled = true;
+        }
+
+        private void ComboOverlay_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                HideComboDrop();
+                e.Handled = true;
+            }
         }
 
         private void OpenInExplorer(string folder)
@@ -1994,6 +2174,9 @@ namespace MiLauncher
             }
 
             _settingsOpen = false;
+
+            // 下拉列表是窗口内浮层，设置关掉时必须一起收起，否则会挂在那儿
+            HideComboDrop();
 
             AnimateScale(1, 0.96, 140, new CubicEase { EasingMode = EasingMode.EaseIn });
             BeginOverlayFade(1, 0, 150, delegate { SettingsOverlay.Visibility = Visibility.Collapsed; });
