@@ -46,6 +46,9 @@ namespace MiLauncher.Services
         /// <summary>轮播间隔秒数，小于等于 0 时用默认 10 秒。</summary>
         public int CarouselSeconds { get; set; }
 
+        /// <summary>是否隐藏详情页「开始游戏」下方那行安装路径（默认显示）。</summary>
+        public bool HideInstallPath { get; set; }
+
         /// <summary>背景缓慢推近。默认关：实测开着内存从 190MB 涨到 500MB+。</summary>
         public bool KenBurnsEnabled { get; set; }
 

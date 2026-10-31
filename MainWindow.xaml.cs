@@ -1000,6 +1000,7 @@ namespace MiLauncher
             // DX12 勾选项只对支持的游戏出现（目前只有绝区零），状态按游戏分别记忆
             CbDx12.Visibility = game.SupportsDx12 ? Visibility.Visible : Visibility.Collapsed;
             CbDx12.IsChecked = game.SupportsDx12 && game.UseDx12;
+            ApplyDetailPathSettings();
 
             // 区服 pill 现在固定用主题金（颜色写在 XAML 里），不再跟着各游戏主色变；
             // 游戏主色只留给背景兜底光晕，保证同一屏上的强调色只有一种。
@@ -2227,6 +2228,7 @@ namespace MiLauncher
 
             CmbInterval.SelectedIndex = IntervalIndex(_config.CarouselSeconds);
             CmbInterval.IsEnabled = !_config.CarouselDisabled;
+            SwHidePath.IsChecked = _config.HideInstallPath;
 
             TxtCacheDir.Text = OfficialAssets.CacheDir;
             TxtCacheDir.ToolTip = TxtCacheDir.Text;
@@ -2450,6 +2452,57 @@ namespace MiLauncher
             CmbInterval.IsEnabled = !_config.CarouselDisabled;
             SaveConfig();
             RestartCarousel();
+        }
+
+        private void SwHidePath_Click(object sender, RoutedEventArgs e)
+        {
+            _config.HideInstallPath = SwHidePath.IsChecked == true;
+            SaveConfig();
+            ApplyDetailPathSettings();
+        }
+
+        /// <summary>
+        /// 「隐藏安装路径」的落地逻辑。详情区是按底部对齐的（Grid 第二行是 *），
+        /// 所以直接 Collapsed 会让整块往下掉、连「开始游戏」一起动 —— 这里做了区分：
+        /// 普通游戏用 Hidden 保留那一行的占位，高度不变、按钮纹丝不动；
+        /// 绝区零把 DX12 开关顶到路径原来的位置（它下面没有别的东西，高度自然接得住）。
+        /// </summary>
+        private double _pathRowHeight;
+
+        private void ApplyDetailPathSettings()
+        {
+            bool hide = _config != null && _config.HideInstallPath;
+            bool hasDx12 = CbDx12.Visibility == Visibility.Visible;
+
+            // 路径行显示着的时候记下真实高度；收起后 ActualHeight 归零，用实测值兜底
+            if (PathRow.Visibility == Visibility.Visible && PathRow.ActualHeight > 0)
+            {
+                _pathRowHeight = PathRow.ActualHeight;
+            }
+
+            double pathHeight = _pathRowHeight > 0 ? _pathRowHeight : 16.0;
+
+            if (hasDx12)
+            {
+                // 绝区零：DX12 顶到路径原来的位置上。
+                // 顶边距 = 原间距(16) + 原间隙(15) + 路径行高，这样"下面总高度"和隐藏前完全一致，
+                // 按底部对齐的详情块才不会整体位移，「开始游戏」纹丝不动。
+                PathRow.Visibility = hide ? Visibility.Collapsed : Visibility.Visible;
+                CbDx12.Margin = new Thickness(2, hide ? 31 + pathHeight : 16, 0, 0);
+            }
+            else
+            {
+                // 其它游戏：只是不画路径，位置留着，Block 高度不变
+                PathRow.Visibility = hide ? Visibility.Hidden : Visibility.Visible;
+                CbDx12.Margin = new Thickness(2, 16, 0, 0);
+            }
+
+            // 首次显示时高度还没量出来（用了兜底值），布局完成后再算一遍
+            if (hide && hasDx12 && _pathRowHeight <= 0)
+            {
+                Dispatcher.BeginInvoke(new Action(ApplyDetailPathSettings),
+                                       System.Windows.Threading.DispatcherPriority.Loaded);
+            }
         }
 
         private void CmbInterval_SelectionChanged(object sender, SelectionChangedEventArgs e)

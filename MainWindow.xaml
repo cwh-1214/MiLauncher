@@ -786,8 +786,9 @@
                             </StackPanel>
                         </CheckBox>
 
-                        <!-- 安装位置：前面一个小文件夹图标，路径压暗，完整路径放 ToolTip -->
-                        <StackPanel Orientation="Horizontal" Margin="2,15,0,0">
+                        <!-- 安装位置：前面一个小文件夹图标，路径压暗，完整路径放 ToolTip。
+                             设置里可以整行隐藏；隐藏时「开始游戏」的位置不受影响（它在这行上面）。 -->
+                        <StackPanel x:Name="PathRow" Orientation="Horizontal" Margin="2,15,0,0">
                             <Path Data="M1,2.6 L5.2,2.6 L6.6,4.4 L13,4.4 L13,11.2 L1,11.2 Z"
                                   Stroke="#6B6B80" StrokeThickness="1.1" StrokeLineJoin="Round"
                                   VerticalAlignment="Center" Margin="0,0,7,1" />
@@ -1045,6 +1046,21 @@
                                             </ComboBox>
                                         </Grid>
                                     </StackPanel>
+                                </Border>
+
+                                <TextBlock Text="详情页" Foreground="#8E8E9E" FontSize="12"
+                                           Margin="2,18,0,8" />
+                                <Border Background="#292C30" CornerRadius="12">
+                                    <Grid Margin="16,13">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="隐藏安装路径" Foreground="#ECECF4" FontSize="13.5" />
+                                            <TextBlock Text="「开始游戏」下方那行路径不显示，界面更干净"
+                                                       Foreground="#9494AA" FontSize="12" Margin="0,3,0,0" />
+                                        </StackPanel>
+                                        <CheckBox x:Name="SwHidePath" Style="{StaticResource Switch}"
+                                                  HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                  Click="SwHidePath_Click" />
+                                    </Grid>
                                 </Border>
                             </StackPanel>
 
