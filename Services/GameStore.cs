@@ -49,12 +49,6 @@ namespace MiLauncher.Services
         /// <summary>背景缓慢推近。默认关：实测开着内存从 190MB 涨到 500MB+。</summary>
         public bool KenBurnsEnabled { get; set; }
 
-        /// <summary>
-        /// 背景解码宽度。0 = 按窗口自动（最小 1280、最大 2560）；
-        /// 非零则固定用这个值，越低越省内存、画面越软。
-        /// </summary>
-        public int BackdropWidth { get; set; }
-
         /// <summary>开机自动启动（注册表 Run 项）。</summary>
         public bool AutoStart { get; set; }
 

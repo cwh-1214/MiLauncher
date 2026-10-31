@@ -513,6 +513,74 @@ namespace MiLauncher.Services
             }
         }
 
+        /// <summary>
+        /// 删掉"宽度不是当前解码宽度"的旁车。旁车是 3.7–14.7MB 一张的裸位图，
+        /// 一旦窗口搬到别的分辨率（或以前用过固定清晰度），旧宽度的文件就永远不会再被读到，
+        /// 留着纯占磁盘——实测能堆到 150MB 以上。当前宽度和兜底糊版（220）那两份留着。
+        /// </summary>
+        public static void PruneSidecars(int keepWidth)
+        {
+            if (keepWidth <= 0)
+            {
+                return;
+            }
+
+            try
+            {
+                string dir = CacheDir;
+                if (!Directory.Exists(dir))
+                {
+                    return;
+                }
+
+                foreach (string file in Directory.GetFiles(dir, "*.bmp"))
+                {
+                    string name = Path.GetFileName(file);
+                    if (name == null || name.Length < 6)
+                    {
+                        continue;
+                    }
+
+                    int end = name.Length - 4;      // ".bmp" 之前
+                    int i = end - 1;
+                    while (i >= 0 && char.IsDigit(name[i]))
+                    {
+                        i--;
+                    }
+
+                    // 必须长成 name.d<数字>.bmp，别的 bmp 一律不碰
+                    if (i == end - 1 || i < 1 || name[i] != 'd' || name[i - 1] != '.')
+                    {
+                        continue;
+                    }
+
+                    int width;
+                    if (!int.TryParse(name.Substring(i + 1, end - i - 1), out width))
+                    {
+                        continue;
+                    }
+
+                    if (width == keepWidth || width == BackdropBlurDecodeWidth)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        File.Delete(file);
+                    }
+                    catch
+                    {
+                        // 被占用就下次再删
+                    }
+                }
+            }
+            catch
+            {
+                // 清理失败不影响显示
+            }
+        }
+
         /// <summary>把解码好的位图落一份无压缩 BMP，下次切换直接读，不用再解 webp。</summary>
         private static void WriteSidecar(string path, int decodeWidth, ImageSource image)
         {

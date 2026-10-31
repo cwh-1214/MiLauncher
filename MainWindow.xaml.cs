@@ -124,6 +124,10 @@ namespace MiLauncher
             _config = GameStore.Load();
             OfficialAssets.CacheDir = _config.AssetCacheDir;
 
+            // 解码宽度必须在这里定下来：下面第 175 行选中游戏就会触发第一次背景解码，
+            // 那时若还是默认的 2560，会白解一张 14.7MB 的图、白写一份旁车。
+            ApplyDecodeWidthForWindow();
+
             // exe 挪过位置或被安全软件清过注册表时，按配置把开机自启补回来
             if (_config.AutoStart)
             {
@@ -228,22 +232,40 @@ namespace MiLauncher
         /// <summary>
         /// 按窗口物理宽度决定背景解码宽度。官方原图 2560×1440：
         /// 窗口比 2560 还宽也只能用到 2560（源就这么多），比 1280 窄就没必要解那么大。
+        /// 以前这里还有个「固定清晰度」的手动选项，已经去掉了——窗口尺寸是固定的，
+        /// 跟着窗口算永远是正确值，手动选只会要么发虚要么白占内存。
         /// </summary>
         private void ApplyDecodeWidthForWindow()
         {
-            // 设置里选了固定清晰度就以它为准，没选（0）才跟着窗口走：
-            // 窗口比 2560 还宽也只能用到 2560（源就这么多），比 1280 窄就没必要解那么大。
-            if (_config != null && _config.BackdropWidth > 0)
+            // 刚构造、还没挂到 HwndSource 时 VisualTreeHelper.GetDpi 只会给 96，
+            // 这时候问系统要 DPI，否则按 1280 解出来的图在 150% 屏上会发虚
+            double dpi = 0;
+            if (PresentationSource.FromVisual(this) != null)
             {
-                OfficialAssets.BackgroundDecodeWidth = _config.BackdropWidth;
-                return;
+                dpi = VisualTreeHelper.GetDpi(this).DpiScaleX;
             }
 
-            double dpi = VisualTreeHelper.GetDpi(this).DpiScaleX;
+            if (dpi <= 0)
+            {
+                try
+                {
+                    dpi = GetDpiForSystem() / 96.0;
+                }
+                catch
+                {
+                    dpi = 1.0;
+                }
+            }
+
             double width = ActualWidth > 0 ? ActualWidth : Width;
             int pixels = (int)Math.Ceiling(width * dpi);
 
             OfficialAssets.BackgroundDecodeWidth = Math.Max(1280, Math.Min(2560, pixels));
+
+            // 换个分辨率（比如把窗口拖到另一块屏）时，旧宽度的旁车就没用了。
+            // 放到后台删，别在 UI 线程摸磁盘。
+            int keep = OfficialAssets.BackgroundDecodeWidth;
+            Task.Run(() => OfficialAssets.PruneSidecars(keep));
         }
 
         /// <summary>
@@ -979,15 +1001,8 @@ namespace MiLauncher
             CbDx12.Visibility = game.SupportsDx12 ? Visibility.Visible : Visibility.Collapsed;
             CbDx12.IsChecked = game.SupportsDx12 && game.UseDx12;
 
-            var accent = new SolidColorBrush(game.Accent);
-            accent.Freeze();
-            TxtServer.Foreground = accent;
-            ServerPill.Background = new SolidColorBrush(
-                Color.FromArgb(38, game.Accent.R, game.Accent.G, game.Accent.B));
-            BtnPlay.Background = accent;
-
-            // 有官方背景图时把游戏名收小，避免和图上自带的 logo 重复；
-            // 但也不能完全去掉——有些官方图里并没有 logo（比如星铁那张）。
+            // 区服 pill 现在固定用主题金（颜色写在 XAML 里），不再跟着各游戏主色变；
+            // 游戏主色只留给背景兜底光晕，保证同一屏上的强调色只有一种。
             Backdrop.Background = BuildBackdrop(game.Accent);
             ApplyBackdropOnly(game);
             RestartCarousel();
@@ -1749,8 +1764,8 @@ namespace MiLauncher
                 menu.Items.Add(launcherItem);
             }
 
-            menu.Items.Add(new Separator());
-
+            // 这里原本有一条 Separator 分隔「危险操作」，去掉了：菜单本来就不长，
+            // 红色字本身已经是足够的警示，多一条线反而显得空。
             var removeItem = new MenuItem { Header = "从列表移除" };
             removeItem.Style = (Style)FindResource("DangerMenuItem");
             removeItem.Click += delegate { RemoveGame(game); };
@@ -1884,6 +1899,9 @@ namespace MiLauncher
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern uint GetDpiForSystem();
 
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
         private struct RECT
@@ -2025,7 +2043,6 @@ namespace MiLauncher
             SwCheckUpdate.IsChecked = !_config.CheckUpdateDisabled;
 
             CmbInterval.SelectedIndex = IntervalIndex(_config.CarouselSeconds);
-            CmbQuality.SelectedIndex = QualityIndex(_config.BackdropWidth);
             CmbInterval.IsEnabled = !_config.CarouselDisabled;
 
             TxtCacheDir.Text = OfficialAssets.CacheDir;
@@ -2080,20 +2097,6 @@ namespace MiLauncher
         }
 
         private static int[] IntervalValues = { 6, 10, 15, 30 };
-
-        private static int QualityIndex(int width)
-        {
-            switch (width)
-            {
-                case 1280: return 1;
-                case 1600: return 2;
-                case 1920: return 3;
-                case 2560: return 4;
-                default: return 0; // 自动
-            }
-        }
-
-        private static int[] QualityValues = { 0, 1280, 1600, 1920, 2560 };
 
         /// <summary>「添加游戏」默认落到哪：先看设置里选的目录，再看上次用过的，最后退到常见位置。</summary>
         private string EffectiveGameRoot()
@@ -2184,6 +2187,31 @@ namespace MiLauncher
             OpenFolder(Path.GetDirectoryName(GameStore.ConfigPath));
         }
 
+        private const string GitHubUrl = "https://github.com/cwh-1214/MiLauncher";
+
+        private void BtnOpenGitHub_Click(object sender, RoutedEventArgs e)
+        {
+            OpenUrl(GitHubUrl);
+        }
+
+        private void TxtGitHub_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            OpenUrl(GitHubUrl);
+        }
+
+        /// <summary>用系统默认浏览器打开链接。打不开就静默——不该因为一个网址把界面搞崩。</summary>
+        private static void OpenUrl(string url)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch
+            {
+                // 没有默认浏览器或被组策略拦掉，忽略
+            }
+        }
+
         private async void BtnClearCache_Click(object sender, RoutedEventArgs e)
         {
             await Task.Run(() => OfficialAssets.ClearCache());
@@ -2255,26 +2283,6 @@ namespace MiLauncher
 
             _carouselTimer.Interval = TimeSpan.FromSeconds(_config.CarouselSeconds);
             RestartCarousel();
-        }
-
-        private async void CmbQuality_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (!_settingsOpen || CmbQuality.SelectedIndex < 0)
-            {
-                return;
-            }
-
-            int width = QualityValues[Math.Min(CmbQuality.SelectedIndex, QualityValues.Length - 1)];
-            if (width == _config.BackdropWidth)
-            {
-                return;
-            }
-
-            _config.BackdropWidth = width;
-            SaveConfig();
-            ApplyDecodeWidthForWindow();
-
-            await ReloadBackdropsAsync();
         }
 
         private void SwAutoStart_Click(object sender, RoutedEventArgs e)
