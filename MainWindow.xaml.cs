@@ -2462,14 +2462,17 @@ namespace MiLauncher
         }
 
         /// <summary>
-        /// 「隐藏安装路径」只需要控制路径行画不画：它和 DX12 一起住在一块固定高度的槽位里
-        /// （见 XAML 的 DetailFooter，高 51），槽位高度与「有没有 DX12 / 画不画路径」无关，
-        /// 所以按钮和整个详情区在任何游戏、任何设置下都不会上下位移。
+        /// 「隐藏安装路径」= 不画路径，并把它的高度一起收掉。
+        /// 按钮下面的槽位（见 XAML 的 DetailFooter）显示时高 51（DX12 + 间距 + 路径），
+        /// 隐藏时收到 19（只留 DX12 那一行），「开始游戏」跟着下移 32，底部不留空。
+        /// 之所以留 19 而不是 0：绝区零的 DX12 还住在这块里，两个游戏的槽高必须相同，
+        /// 否则切到绝区零时底部对齐又会把按钮顶上去。
         /// </summary>
         private void ApplyDetailPathSettings()
         {
             bool hide = _config != null && _config.HideInstallPath;
-            PathRow.Visibility = hide ? Visibility.Hidden : Visibility.Visible;
+            PathRow.Visibility = hide ? Visibility.Collapsed : Visibility.Visible;
+            DetailFooter.Height = hide ? 19 : 51;
         }
 
         private void CmbInterval_SelectionChanged(object sender, SelectionChangedEventArgs e)
