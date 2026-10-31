@@ -448,8 +448,8 @@
         </Style>
 
         <!-- 暗色下拉：默认主题的 ComboBox 是白底，在深色面板上很刺眼，整套重做。
-             关键：ComboBox 自己不处理鼠标点击，展开全靠模板里的 ToggleButton 把 IsChecked
-             双向绑到 IsDropDownOpen。少了它，控件画得再好看也点不开，表现就是"选项固定、改不了"。 -->
+             展开由代码接管（PreviewMouseLeftButtonDown → ShowComboDrop），模板里没有 Popup，
+             所以这里只画"收起状态"的样子；展开的列表画在窗口内的 ComboOverlay 上。 -->
         <Style x:Key="DarkCombo" TargetType="ComboBox">
             <Setter Property="Foreground" Value="#E8E8F2" />
             <Setter Property="FontSize" Value="12.5" />

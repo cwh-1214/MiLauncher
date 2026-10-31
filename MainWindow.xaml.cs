@@ -714,6 +714,20 @@ namespace MiLauncher
 
         protected override void OnClosing(CancelEventArgs e)
         {
+            // 模态浮层靠嵌套 DispatcherFrame 撑着，窗口直接关会把消息循环抽掉，
+            // frame 永远等不到 Continue=false。先拦下这次关闭，把对话框放掉，
+            // 用户再点一次关闭（或者等对话框关掉后自己点）就能正常退出。
+            if (_dialogOpen)
+            {
+                e.Cancel = true;
+                if (_dialogClose != null)
+                {
+                    _dialogClose(false);
+                }
+
+                return;
+            }
+
             CaptureWindowPlacement();
             FlushConfig();
             base.OnClosing(e);
@@ -2596,11 +2610,19 @@ namespace MiLauncher
             DialogScale.BeginAnimation(ScaleTransform.ScaleYProperty, pop);
 
             DlgConfirm.Focus();
-            Dispatcher.PushFrame(frame);
 
-            _dialogClose = null;
-            _dialogOpen = false;
-            DialogOverlay.Visibility = Visibility.Collapsed;
+            // finally 兜底：万一 PushFrame 里抛了异常（比如点击处理里出错），
+            // 也要把状态复位，否则 _dialogOpen 永远是 true，之后所有对话框都弹不出来。
+            try
+            {
+                Dispatcher.PushFrame(frame);
+            }
+            finally
+            {
+                _dialogClose = null;
+                _dialogOpen = false;
+                DialogOverlay.Visibility = Visibility.Collapsed;
+            }
 
             return _dialogResult == true;
         }
