@@ -729,7 +729,7 @@
                         </StackPanel>
                     </Border>
 
-                    <StackPanel Grid.Row="2" Margin="134,0,46,38">
+                    <StackPanel Grid.Row="2" Margin="134,0,46,30">
                         <!-- 有官方背景图时由图上的 logo 承担识别，这里只在没有图时兜底显示游戏名 -->
                         <TextBlock x:Name="TxtName" Text="—"
                                    Foreground="#FFFFFF" FontSize="40" FontWeight="Medium"
