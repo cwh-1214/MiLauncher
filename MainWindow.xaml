@@ -260,6 +260,33 @@
             </Setter>
         </Style>
 
+        <!-- 对话框里的危险按钮：红底白字，hover/pressed 都在这套红里变化 -->
+        <Style x:Key="DialogDangerBtn" TargetType="Button">
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="MinWidth" Value="96" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="8" Background="#C0453D">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#CE5249" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#A83A33" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- 次级按钮：一层很薄的玻璃 + 1px 描边。默认只有文字，
              有版本可更新时由代码把 Tag 设成 Update，模板才放出下载图标、换成金色。 -->
         <Style x:Key="GhostBtn" TargetType="Button">
@@ -1157,6 +1184,81 @@
                             CornerRadius="12" BorderThickness="1" BorderBrush="#5CFFFFFF" />
                 </Grid>
             </Border>
+        </Grid>
+
+        <!-- ===== 模态对话框：画在主窗口内部，不再单开一个 AllowsTransparency 的窗口 =====
+             独立透明窗口在 Windows 上拿不到 ClearType，文字只能灰度抗锯齿，和主界面一比
+             就"不像同一款字体"。放在窗口里之后，文字走和设置面板完全相同的渲染路径，
+             字体、锐度、圆角、阴影全都能对上，代价只是不能用 ShowDialog()，
+             模态改用嵌套 DispatcherFrame 实现（见 ShowDialogOverlay）。 -->
+        <Grid x:Name="DialogOverlay" Visibility="Collapsed" Panel.ZIndex="90"
+              Background="Transparent" PreviewKeyDown="DialogOverlay_PreviewKeyDown"
+              KeyboardNavigation.TabNavigation="Cycle">
+            <Border Background="#990A0A10" />
+
+            <Grid Width="460" HorizontalAlignment="Center" VerticalAlignment="Center"
+                  RenderTransformOrigin="0.5,0.5">
+                <Grid.RenderTransform>
+                    <ScaleTransform x:Name="DialogScale" ScaleX="1" ScaleY="1" />
+                </Grid.RenderTransform>
+
+                <!-- 阴影单独一层、里面不放文字：给带文字的容器加 Effect 会让文字掉成灰度抗锯齿 -->
+                <Border CornerRadius="14" Background="#17171F">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="26" ShadowDepth="0" Opacity="0.65" Color="#000000" />
+                    </Border.Effect>
+                </Border>
+
+                <Border CornerRadius="14" Background="#17171F"
+                        BorderBrush="#2E2E3C" BorderThickness="1">
+                    <Grid Margin="26,22,26,20">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- 标题行：游戏图标 或 语气符号 -->
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="40" Height="40" CornerRadius="12"
+                                    Background="#1AFFFFFF" VerticalAlignment="Center">
+                                <Grid>
+                                    <Border x:Name="DlgIconFrame" CornerRadius="10" Margin="4"
+                                            Visibility="Collapsed">
+                                        <Border.Background>
+                                            <ImageBrush x:Name="DlgIconImage" Stretch="UniformToFill" />
+                                        </Border.Background>
+                                    </Border>
+
+                                    <Border x:Name="DlgGlyphFrame" CornerRadius="10" Margin="4">
+                                        <TextBlock x:Name="DlgGlyphText" Text="i"
+                                                   FontSize="17" FontWeight="Medium"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <TextBlock x:Name="DlgTitle" Text="提示"
+                                       Foreground="#F2F2F7" FontSize="16" FontWeight="SemiBold"
+                                       VerticalAlignment="Center" Margin="12,0,0,0" />
+                        </StackPanel>
+
+                        <TextBlock x:Name="DlgMessage" Grid.Row="1" Text=""
+                                   Foreground="#A8A8BC" FontSize="13" LineHeight="21"
+                                   TextWrapping="Wrap" Margin="0,16,0,0" />
+
+                        <StackPanel Grid.Row="2" Orientation="Horizontal"
+                                    HorizontalAlignment="Right" Margin="0,22,0,0">
+                            <Button x:Name="DlgCancel" Style="{StaticResource GhostBtn}"
+                                    Content="取消" Height="38" MinWidth="96" FontSize="12.5"
+                                    Padding="18,0" Click="DlgCancel_Click" />
+                            <Button x:Name="DlgConfirm" Style="{StaticResource PrimaryBtn}"
+                                    Content="确定" Height="38" MinWidth="96" FontSize="12.5"
+                                    Padding="18,0" Margin="10,0,0,0" Click="DlgConfirm_Click" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
     </Grid>
 </Window>

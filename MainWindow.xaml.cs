@@ -642,7 +642,7 @@ namespace MiLauncher
             string error;
             if (!GameStore.TrySave(_config, out error))
             {
-                AppDialog.Tell(this, "保存失败",
+                Tell("保存失败",
                     "无法保存配置：\n" + error + "\n\n本次改动只在这次运行期间有效。",
                     DialogTone.Error, null);
             }
@@ -817,7 +817,7 @@ namespace MiLauncher
             {
                 if (interactive)
                 {
-                    AppDialog.Tell(this, "扫描失败", error, DialogTone.Error, null);
+                    Tell("扫描失败", error, DialogTone.Error, null);
                 }
                 return false;
             }
@@ -850,7 +850,7 @@ namespace MiLauncher
             }
             if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
             {
-                AppDialog.Tell(this, "无法扫描", "目录不存在：\n" + root,
+                Tell("无法扫描", "目录不存在：\n" + root,
                     DialogTone.Warning, null);
                 return;
             }
@@ -872,7 +872,7 @@ namespace MiLauncher
 
             if (error != null)
             {
-                AppDialog.Tell(this, "扫描失败", error, DialogTone.Error, null);
+                Tell("扫描失败", error, DialogTone.Error, null);
                 return;
             }
 
@@ -881,7 +881,7 @@ namespace MiLauncher
             if (found == null || found.Count == 0)
             {
                 SaveConfig();
-                AppDialog.Tell(this, "未找到游戏",
+                Tell("未找到游戏",
                     "这个目录里没有找到米哈游的游戏主程序。\n\n" +
                     "请选择下面任一文件所在的那一层，或者直接选它们的上层文件夹：\n\n" +
                     "· YuanShen.exe（原神）\n" +
@@ -917,7 +917,7 @@ namespace MiLauncher
             {
                 if (interactive)
                 {
-                    AppDialog.Tell(this, "提示", "这些游戏已经在列表里了。", DialogTone.Info, null);
+                    Tell("提示", "这些游戏已经在列表里了。", DialogTone.Info, null);
                 }
                 return false;
             }
@@ -1568,7 +1568,7 @@ namespace MiLauncher
             }
             if (!game.IsInstalled || !File.Exists(game.ExePath))
             {
-                AppDialog.Tell(this, "无法启动", "主程序不存在：\n" + game.ExePath,
+                Tell("无法启动", "主程序不存在：\n" + game.ExePath,
                     DialogTone.Warning, null);
                 return;
             }
@@ -1600,7 +1600,7 @@ namespace MiLauncher
             }
             catch (Exception ex)
             {
-                AppDialog.Tell(this, "启动失败", ex.Message, DialogTone.Error, null);
+                Tell("启动失败", ex.Message, DialogTone.Error, null);
             }
         }
 
@@ -1635,7 +1635,7 @@ namespace MiLauncher
         {
             if (game == null || string.IsNullOrEmpty(game.LauncherPath) || !File.Exists(game.LauncherPath))
             {
-                AppDialog.Tell(this, "无法打开更新器",
+                Tell("无法打开更新器",
                     "没有找到这个游戏所属渠道的启动器。\n\n可以右键左侧图标 → 打开所在文件夹，确认目录结构。",
                     DialogTone.Info, null);
                 return false;
@@ -1653,7 +1653,7 @@ namespace MiLauncher
             }
             catch (Exception ex)
             {
-                AppDialog.Tell(this, "打开失败", ex.Message, DialogTone.Error, null);
+                Tell("打开失败", ex.Message, DialogTone.Error, null);
                 return false;
             }
         }
@@ -1780,7 +1780,7 @@ namespace MiLauncher
         {
             if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
             {
-                AppDialog.Tell(this, "无法打开", "目录不存在：\n" + folder,
+                Tell("无法打开", "目录不存在：\n" + folder,
                     DialogTone.Warning, null);
                 return;
             }
@@ -1822,7 +1822,7 @@ namespace MiLauncher
             string path = dialog.FileName;
             if (GameCatalog.FindByExe(Path.GetFileName(path)) == null)
             {
-                AppDialog.Tell(this, "无法识别",
+                Tell("无法识别",
                     "这个文件不是能识别的米哈游游戏主程序。\n\n" +
                     "可用的主程序：YuanShen.exe / GenshinImpact.exe / StarRail.exe /\n" +
                     "ZenlessZoneZero.exe / BH3.exe",
@@ -1841,7 +1841,7 @@ namespace MiLauncher
                      string.Equals(g.GameKey, fresh.GameKey, StringComparison.OrdinalIgnoreCase));
             if (duplicate != null)
             {
-                AppDialog.Tell(this, "提示", "这个主程序已经在列表里了。", DialogTone.Info, null);
+                Tell("提示", "这个主程序已经在列表里了。", DialogTone.Info, null);
                 return;
             }
 
@@ -1863,7 +1863,7 @@ namespace MiLauncher
 
         private void RemoveGame(GameInfo game)
         {
-            bool confirmed = AppDialog.Ask(this,
+            bool confirmed = Ask(
                 "从列表移除",
                 "把「" + game.Name + "（" + game.Server + "）」从启动器列表里去掉。\n" +
                 "不会删除任何游戏文件，之后还能重新添加。",
@@ -2299,6 +2299,160 @@ namespace MiLauncher
         {
             _config.CheckUpdateDisabled = SwCheckUpdate.IsChecked == false;
             SaveConfig();
+        }
+
+        // ==================== 模态对话框（窗口内浮层） ====================
+
+        private bool? _dialogResult;
+        private Action<bool> _dialogClose;
+        private bool _dialogOpen;
+
+        /// <summary>提示框：只有一个按钮，默认「知道了」。</summary>
+        private void Tell(string title, string message, DialogTone tone, ImageSource icon)
+        {
+            ShowDialogOverlay(title, message, null, "知道了", tone, icon, false);
+        }
+
+        /// <summary>确认框：返回用户是否点了确认。</summary>
+        private bool Ask(string title, string message, string confirmText, bool danger, ImageSource icon)
+        {
+            return ShowDialogOverlay(title, message, "取消", confirmText,
+                                     danger ? DialogTone.Error : DialogTone.Info, icon, danger);
+        }
+
+        /// <summary>
+        /// 在主窗口里弹一个模态卡片。用嵌套 DispatcherFrame 复刻 ShowDialog 的阻塞语义，
+        /// 好处是文字走正常渲染路径（ClearType），不会像独立透明窗口那样掉成灰度抗锯齿。
+        /// </summary>
+        private bool ShowDialogOverlay(string title, string message, string cancelText,
+                                       string confirmText, DialogTone tone, ImageSource icon, bool danger)
+        {
+            // 同一时刻只允许一个，行为和系统模态框一致
+            if (_dialogOpen)
+            {
+                return false;
+            }
+
+            DlgTitle.Text = title;
+            DlgMessage.Text = message;
+
+            if (icon != null)
+            {
+                DlgIconImage.ImageSource = icon;
+                DlgIconFrame.Visibility = Visibility.Visible;
+                DlgGlyphFrame.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                SetDialogGlyph(tone);
+                DlgIconFrame.Visibility = Visibility.Collapsed;
+                DlgGlyphFrame.Visibility = Visibility.Visible;
+            }
+
+            bool hasCancel = !string.IsNullOrEmpty(cancelText);
+            DlgCancel.Visibility = hasCancel ? Visibility.Visible : Visibility.Collapsed;
+            DlgCancel.Content = cancelText;
+            DlgCancel.IsDefault = hasCancel;
+            DlgCancel.IsCancel = true;
+
+            DlgConfirm.Content = confirmText;
+            DlgConfirm.Style = (Style)FindResource(danger ? "DialogDangerBtn" : "PrimaryBtn");
+            DlgConfirm.IsDefault = !hasCancel;
+            DlgConfirm.IsCancel = !hasCancel;
+
+            _dialogOpen = true;
+            _dialogResult = null;
+            DialogOverlay.Visibility = Visibility.Visible;
+
+            var frame = new DispatcherFrame();
+            _dialogClose = delegate(bool ok)
+            {
+                _dialogResult = ok;
+                frame.Continue = false;
+            };
+
+            // 淡入 + 轻微放大，和设置弹窗一个手感
+            DialogOverlay.BeginAnimation(OpacityProperty, null);
+            DialogOverlay.Opacity = 0;
+            DialogOverlay.BeginAnimation(OpacityProperty,
+                new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(130)));
+
+            DialogScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            DialogScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+            DialogScale.ScaleX = 0.96;
+            DialogScale.ScaleY = 0.96;
+
+            var pop = new DoubleAnimation(0.96, 1, TimeSpan.FromMilliseconds(170))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            DialogScale.BeginAnimation(ScaleTransform.ScaleXProperty, pop);
+            DialogScale.BeginAnimation(ScaleTransform.ScaleYProperty, pop);
+
+            DlgConfirm.Focus();
+            Dispatcher.PushFrame(frame);
+
+            _dialogClose = null;
+            _dialogOpen = false;
+            DialogOverlay.Visibility = Visibility.Collapsed;
+
+            return _dialogResult == true;
+        }
+
+        private void SetDialogGlyph(DialogTone tone)
+        {
+            switch (tone)
+            {
+                case DialogTone.Warning:
+                    DlgGlyphText.Text = "!";
+                    DlgGlyphFrame.Background = DialogBrush(0x33, 0xE8, 0xB5, 0x59);
+                    DlgGlyphText.Foreground = DialogBrush(0xFF, 0xE8, 0xB5, 0x59);
+                    break;
+
+                case DialogTone.Error:
+                    DlgGlyphText.Text = "×";
+                    DlgGlyphFrame.Background = DialogBrush(0x33, 0xF0, 0x71, 0x6B);
+                    DlgGlyphText.Foreground = DialogBrush(0xFF, 0xF0, 0x71, 0x6B);
+                    break;
+
+                default:
+                    DlgGlyphText.Text = "i";
+                    DlgGlyphFrame.Background = DialogBrush(0x33, 0xFB, 0xDC, 0x29);
+                    DlgGlyphText.Foreground = DialogBrush(0xFF, 0xFB, 0xDC, 0x29);
+                    break;
+            }
+        }
+
+        private static Brush DialogBrush(byte a, byte r, byte g, byte b)
+        {
+            var brush = new SolidColorBrush(Color.FromArgb(a, r, g, b));
+            brush.Freeze();
+            return brush;
+        }
+
+        private void DlgConfirm_Click(object sender, RoutedEventArgs e)
+        {
+            if (_dialogClose != null)
+            {
+                _dialogClose(true);
+            }
+        }
+
+        private void DlgCancel_Click(object sender, RoutedEventArgs e)
+        {
+            if (_dialogClose != null)
+            {
+                _dialogClose(false);
+            }
+        }
+
+        private void DialogOverlay_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape && _dialogClose != null)
+            {
+                _dialogClose(false);
+                e.Handled = true;
+            }
         }
     }
 }
