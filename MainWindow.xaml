@@ -57,11 +57,13 @@
         <!-- 侧栏图标的气泡提示：默认 ToolTip 是白底细边，在深色界面上很跳。
              这里重画成深色圆角气泡，左侧留一个小尖角指向图标，从图标右边弹出。 -->
         <Style x:Key="TileTip" TargetType="ToolTip">
+            <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
             <Setter Property="Placement" Value="Right" />
             <Setter Property="HorizontalOffset" Value="8" />
             <!-- Placement=Right 是把气泡的「顶边」对齐到格子上沿的，所以往下推半个格子的高度，
-                 气泡才会和图标垂直居中。实测：格子 74 高、气泡约 32 高，19 让气泡中心比图标中心低 1px -->
-            <Setter Property="VerticalOffset" Value="19" />
+                 气泡才会和图标垂直居中。弹窗真实位置实测：offset=18.5 时气泡中心 97.33，
+                 而格子中心 96.5 → 再减 0.8，用 17.7 让两者中心重合 -->
+            <Setter Property="VerticalOffset" Value="17.7" />
             <Setter Property="HasDropShadow" Value="False" />
             <Setter Property="Template">
                 <Setter.Value>

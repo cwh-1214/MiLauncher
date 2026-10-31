@@ -26,6 +26,9 @@
         -->
         <Style TargetType="ContextMenu">
             <Setter Property="Background" Value="#1F1F2A" />
+            <!-- ContextMenu 是独立的弹出窗口，不继承主窗口的 FontFamily，
+                 不显式写就会退回系统雅黑，看菜单就能看出字体不一致 -->
+            <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
             <Setter Property="BorderBrush" Value="#33FFFFFF" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="4" />
@@ -50,6 +53,7 @@
         <Style TargetType="MenuItem">
             <Setter Property="Foreground" Value="#E8E8F0" />
             <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
             <Setter Property="Padding" Value="12,7" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -111,6 +115,14 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <!-- ToolTip 同样是独立弹出窗口，不继承窗口字体；主界面那些默认样式的
+             提示（路径、按钮说明等）靠这条兜底。侧栏气泡有自己的 Style，
+             字体在那个模板里单独写。 -->
+        <Style TargetType="ToolTip">
+            <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+            <Setter Property="FontSize" Value="12" />
         </Style>
     </Application.Resources>
 </Application>

@@ -98,10 +98,20 @@ namespace MiLauncher
         private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
             WriteLog(e.Exception);
-            MessageBox.Show(
-                "程序遇到了未处理的错误：\n\n" + e.Exception.Message +
-                "\n\n详细信息已写入：\n" + LogPath,
-                "米哈游游戏中心", MessageBoxButton.OK, MessageBoxImage.Error);
+
+            string message = e.Exception.Message + "\n\n详细信息已写入：\n" + LogPath;
+
+            // 和主界面同一套深色对话框；系统 MessageBox 是白底方角+系统字体，很割裂。
+            // 自己画对话框本身也可能失败（比如资源已经坏了），所以留一条回退。
+            try
+            {
+                AppDialog.Tell(MainWindow, "程序遇到了未处理的错误", message, DialogTone.Error, null);
+            }
+            catch
+            {
+                MessageBox.Show(message, "米哈游游戏中心", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
             e.Handled = true;
         }
 

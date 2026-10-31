@@ -12,7 +12,8 @@
         WindowStartupLocation="CenterOwner"
         FontFamily="{StaticResource UiFont}"
         UseLayoutRounding="True"
-        TextOptions.TextFormattingMode="Display">
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="ClearType">
 
     <Window.Resources>
         <!-- 取消 / 知道了这类低调按钮 -->
@@ -44,15 +45,15 @@
             </Setter>
         </Style>
 
-        <!-- 主按钮：金色，和主界面的「开始游戏」一致 -->
+        <!-- 主按钮：和主界面的「开始游戏」同一套主题金 #FBDC29 -->
         <Style x:Key="PrimaryButton" TargetType="Button">
             <Setter Property="Height" Value="38" />
             <Setter Property="MinWidth" Value="96" />
             <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontWeight" Value="Medium" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Foreground" Value="#1A1A1A" />
-            <Setter Property="Background" Value="#D3BC8E" />
+            <Setter Property="Foreground" Value="#12121A" />
+            <Setter Property="Background" Value="#FBDC29" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -63,10 +64,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#E2CDA2" />
+                                <Setter TargetName="Bd" Property="Background" Value="#FFF07A" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#BFA574" />
+                                <Setter TargetName="Bd" Property="Background" Value="#EBC91D" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -79,7 +80,7 @@
             <Setter Property="Height" Value="38" />
             <Setter Property="MinWidth" Value="96" />
             <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontWeight" Value="Medium" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="Background" Value="#C0453D" />
