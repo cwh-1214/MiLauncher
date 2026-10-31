@@ -771,33 +771,38 @@
                                     VerticalAlignment="Center" Click="BtnLauncher_Click" />
                         </StackPanel>
 
-                        <!-- 绝区零专用：官方把 DX12 开关放在「开始游戏」按钮正下方，位置照抄。
-                             官方只在符合条件的显卡上显示；这里始终显示，靠小字提示硬件要求，
-                             免得显卡名识别不准把功能藏起来。 -->
-                        <CheckBox x:Name="CbDx12" Style="{StaticResource Dx12Check}"
-                                  Visibility="Collapsed" Margin="2,16,0,0"
-                                  HorizontalAlignment="Left"
-                                  Checked="CbDx12_Changed" Unchecked="CbDx12_Changed">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="使用 DX12 模式启动" VerticalAlignment="Center" />
-                                <TextBlock Text="首次启用会编译着色器 · 需要 RTX 20 系 / RX 7000 以上显卡"
-                                           Foreground="#79798E" FontSize="12"
-                                           Margin="9,0,0,0" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </CheckBox>
+                        <!-- 按钮以下是一块**固定高度**的槽位：DX12 行贴顶、安装路径贴底。
+                             槽位高 51 = DX12(19) + 间距(15) + 路径(17)，不管当前游戏有没有 DX12，
+                             这块高度都不变 —— 否则绝区零多一行，切换时底部对齐会把按钮整体顶上去 32。
+                             隐藏路径只是不画它，槽位照留，按钮同样不动。 -->
+                        <Grid x:Name="DetailFooter" Height="51" Margin="0,16,0,0">
+                            <!-- 绝区零专用：官方把 DX12 开关放在「开始游戏」按钮正下方，位置照抄。
+                                 官方只在符合条件的显卡上显示；这里始终显示，靠小字提示硬件要求，
+                                 免得显卡名识别不准把功能藏起来。 -->
+                            <CheckBox x:Name="CbDx12" Style="{StaticResource Dx12Check}"
+                                      Visibility="Collapsed" Margin="2,0,0,0"
+                                      VerticalAlignment="Top" HorizontalAlignment="Left"
+                                      Checked="CbDx12_Changed" Unchecked="CbDx12_Changed">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="使用 DX12 模式启动" VerticalAlignment="Center" />
+                                    <TextBlock Text="首次启用会编译着色器 · 需要 RTX 20 系 / RX 7000 以上显卡"
+                                               Foreground="#79798E" FontSize="12"
+                                               Margin="9,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </CheckBox>
 
-                        <!-- 安装位置：前面一个小文件夹图标，路径压暗，完整路径放 ToolTip。
-                             设置里可以整行隐藏：普通游戏保留占位（Hidden），按钮不动；
-                             绝区零真收起（Collapsed）让整块下移，DX12 顶到这一行的位置。 -->
-                        <StackPanel x:Name="PathRow" Orientation="Horizontal" Margin="2,15,0,0">
-                            <Path Data="M1,2.6 L5.2,2.6 L6.6,4.4 L13,4.4 L13,11.2 L1,11.2 Z"
-                                  Stroke="#6B6B80" StrokeThickness="1.1" StrokeLineJoin="Round"
-                                  VerticalAlignment="Center" Margin="0,0,7,1" />
-                            <TextBlock x:Name="TxtPath" Text=""
-                                       Foreground="#A0A0B4" FontSize="12"
-                                       TextTrimming="CharacterEllipsis" MaxWidth="700"
-                                       HorizontalAlignment="Left" VerticalAlignment="Center" />
-                        </StackPanel>
+                            <!-- 安装位置：前面一个小文件夹图标，路径压暗，完整路径放 ToolTip -->
+                            <StackPanel x:Name="PathRow" Orientation="Horizontal" Margin="2,0,0,0"
+                                        VerticalAlignment="Bottom">
+                                <Path Data="M1,2.6 L5.2,2.6 L6.6,4.4 L13,4.4 L13,11.2 L1,11.2 Z"
+                                      Stroke="#6B6B80" StrokeThickness="1.1" StrokeLineJoin="Round"
+                                      VerticalAlignment="Center" Margin="0,0,7,1" />
+                                <TextBlock x:Name="TxtPath" Text=""
+                                           Foreground="#A0A0B4" FontSize="12"
+                                           TextTrimming="CharacterEllipsis" MaxWidth="700"
+                                           HorizontalAlignment="Left" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
 
                         <!-- 只在系统缺少 WebP 解码能力时出现，说明为什么没有背景图 -->
                         <TextBlock x:Name="TxtNotice" Text="" Visibility="Collapsed"

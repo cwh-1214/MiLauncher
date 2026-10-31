@@ -2462,28 +2462,14 @@ namespace MiLauncher
         }
 
         /// <summary>
-        /// 「隐藏安装路径」的落地逻辑。详情区是按底部对齐的（Grid 中间行是 *），
-        /// 少一行会让整块往下掉，两种游戏的期望不同：
-        /// - 普通游戏：用 Hidden 保留占位，只是不画路径 → 块高不变，「开始游戏」原地不动；
-        /// - 绝区零：用 Collapsed 让它真的少一行 → 整块下移，DX12 顶到路径原来的位置。
-        ///
-        /// 剩下那 2 DIP：绝区零收起后只剩「按钮 + 16 + DX12」，比普通游戏的「按钮 + 15 + 路径行」
-        /// 略高一点，底部对齐下块高的那一边按钮就更高，实测差 2。所以收起时把 DX12 的上间距
-        /// 从 16 收到 14，两种游戏的「开始游戏」才会真的落在同一条水平线上。
+        /// 「隐藏安装路径」只需要控制路径行画不画：它和 DX12 一起住在一块固定高度的槽位里
+        /// （见 XAML 的 DetailFooter，高 51），槽位高度与「有没有 DX12 / 画不画路径」无关，
+        /// 所以按钮和整个详情区在任何游戏、任何设置下都不会上下位移。
         /// </summary>
         private void ApplyDetailPathSettings()
         {
             bool hide = _config != null && _config.HideInstallPath;
-            bool hasDx12 = CbDx12.Visibility == Visibility.Visible;
-
-            PathRow.Visibility = hide
-                ? (hasDx12 ? Visibility.Collapsed : Visibility.Hidden)
-                : Visibility.Visible;
-
-            if (hasDx12)
-            {
-                CbDx12.Margin = new Thickness(2, hide ? 14 : 16, 0, 0);
-            }
+            PathRow.Visibility = hide ? Visibility.Hidden : Visibility.Visible;
         }
 
         private void CmbInterval_SelectionChanged(object sender, SelectionChangedEventArgs e)
