@@ -563,7 +563,7 @@
                         <Border x:Name="Bd" Width="48" Height="48" CornerRadius="14"
                                 Background="#0AFFFFFF" BorderBrush="#20FFFFFF" BorderThickness="1">
                             <Path Data="M0,0 L10,0 M5,-5 L5,5"
-                                  Stroke="#8A8A9C" StrokeThickness="1.6"
+                                  Stroke="#C8C8D6" StrokeThickness="1.6"
                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
