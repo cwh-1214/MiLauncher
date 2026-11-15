@@ -1214,9 +1214,6 @@ namespace MiLauncher
                 TxtUpdateInfo.Text = string.Empty;
                 StyleLauncherButton(false, "检查更新");
                 BtnLauncher.IsEnabled = false;
-                BtnLauncher.ToolTip = game.IsInstalled
-                    ? "国际服版本走另一套接口，暂不支持检查"
-                    : "主程序不存在，无法检查版本";
                 return;
             }
 
@@ -1227,7 +1224,6 @@ namespace MiLauncher
                 TxtUpdateInfo.Text = "检查中…";
                 TxtUpdateInfo.Foreground = MutedBrush;
                 StyleLauncherButton(false, "检查中…");
-                BtnLauncher.ToolTip = "正在向米哈游查询当前发布版本";
                 return;
             }
 
@@ -1236,7 +1232,6 @@ namespace MiLauncher
                 TxtUpdateInfo.Text = "可更新至 v" + game.LatestVersion;
                 TxtUpdateInfo.Foreground = WarnBrush;
                 StyleLauncherButton(true, "去官方软件更新");
-                BtnLauncher.ToolTip = "点击会先确认一次版本，然后打开官方启动器完成更新";
                 return;
             }
 
@@ -1257,7 +1252,6 @@ namespace MiLauncher
             }
 
             StyleLauncherButton(false, "检查更新");
-            BtnLauncher.ToolTip = "重新向米哈游查询当前发布版本";
         }
 
         /// <summary>
