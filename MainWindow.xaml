@@ -685,24 +685,25 @@
                     </Border.Background>
                 </Border>
 
-                <!-- 底部压暗：只压最下面一条，保证按钮和文字可读，图片主体保持原色 -->
+                <!-- 底部压暗：起点下移到 45% 才起步，图片的上半部分（角色、画面主体）完全不压；
+                     真正吃到暗度的只有文字和按钮那一带。官方也是这个思路——主体看不出蒙层。 -->
                 <Border IsHitTestVisible="False">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                            <GradientStop Color="#00000000" Offset="0.30" />
-                            <GradientStop Color="#A60E0E14" Offset="0.70" />
-                            <GradientStop Color="#E60E0E14" Offset="0.92" />
-                            <GradientStop Color="#F20E0E14" Offset="1.0" />
+                            <GradientStop Color="#00000000" Offset="0.45" />
+                            <GradientStop Color="#660E0E14" Offset="0.72" />
+                            <GradientStop Color="#CC0E0E14" Offset="0.90" />
+                            <GradientStop Color="#EB0E0E14" Offset="1.0" />
                         </LinearGradientBrush>
                     </Border.Background>
                 </Border>
 
-                <!-- 左侧压暗：只够把文字和图片分开，不要整片发灰 -->
+                <!-- 左侧压暗：只够把文字和图片分开，范围收到 32%，力度降到 22% -->
                 <Border IsHitTestVisible="False">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                            <GradientStop Color="#4D0E0E14" Offset="0" />
-                            <GradientStop Color="#000E0E14" Offset="0.42" />
+                            <GradientStop Color="#380E0E14" Offset="0" />
+                            <GradientStop Color="#000E0E14" Offset="0.32" />
                         </LinearGradientBrush>
                     </Border.Background>
                 </Border>
