@@ -1235,8 +1235,8 @@ namespace MiLauncher
             {
                 TxtUpdateInfo.Text = "可更新至 v" + game.LatestVersion;
                 TxtUpdateInfo.Foreground = WarnBrush;
-                StyleLauncherButton(true, "更新至 v" + game.LatestVersion);
-                BtnLauncher.ToolTip = "点击打开官方启动器完成更新（下载与校验由官方完成）";
+                StyleLauncherButton(true, "去官方软件更新");
+                BtnLauncher.ToolTip = "点击会先确认一次版本，然后打开官方启动器完成更新";
                 return;
             }
 
@@ -1418,13 +1418,40 @@ namespace MiLauncher
                 return;
             }
 
-            // 已经知道有新版本：这一步是"去更新"，打开官方启动器，下载与校验交给它
+            // 已经知道有新版本：这一步是"去更新"。
+            // 但那条提示可能是几小时前查到的（用户可能已经在官方启动器里更新过了），
+            // 所以点下去先重新确认一次版本，再决定要不要拉起官方启动器：
+            //   查到仍有更新 → 打开官方启动器（下载与校验交给它）
+            //   查到已是最新 → 只提示一下，按钮自动变回「检查更新」
+            //   查不到（网络/接口问题）→ 这才是"实在有问题"，直接打开官方启动器兜底
             if (game.HasUpdate)
             {
+                if (_checking.Contains(game.GameKey))
+                {
+                    SetStatus("正在确认版本…", StatusTone.Idle);
+                    return;
+                }
+
+                SetStatus("正在确认版本…", StatusTone.Idle);
+                VersionChecker.FetchResult recheck = await CheckOneAsync(game);
+
+                bool confirmed = recheck != null && !string.IsNullOrEmpty(game.Biz) &&
+                                 recheck.Versions.ContainsKey(game.Biz);
+
+                if (confirmed && !game.HasUpdate)
+                {
+                    SetStatus("已是最新版本，不需要更新", StatusTone.Ok);
+                    return;
+                }
+
                 if (OpenLauncher(game))
                 {
-                    SetStatus("已打开官方启动器，更新由它完成", StatusTone.Ok);
+                    SetStatus(confirmed
+                            ? "已打开官方启动器，更新由它完成"
+                            : "版本查询失败，已打开官方启动器（版本判断交给它）",
+                        StatusTone.Ok);
                 }
+
                 return;
             }
 
