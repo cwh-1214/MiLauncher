@@ -692,7 +692,7 @@
                 <Border IsHitTestVisible="False">
                     <Border.Background>
                         <RadialGradientBrush Center="0,1" GradientOrigin="0,1"
-                                             RadiusX="0.8" RadiusY="0.8">
+                                             RadiusX="0.8" RadiusY="0.7">
                             <GradientStop Color="#EB0E0E14" Offset="0" />
                             <GradientStop Color="#8C0E0E14" Offset="0.52" />
                             <GradientStop Color="#330E0E14" Offset="0.78" />
