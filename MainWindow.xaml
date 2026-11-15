@@ -604,7 +604,6 @@
                 <!-- 品牌标识：一枚金色四角星，简洁、在窄轨上也不糊 -->
                 <Path Width="20" Height="20"
                       VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,14,0,0"
-                      ToolTip="米哈游游戏中心"
                       Data="M10,1 C10,7 13,10 19,10 C13,10 10,13 10,19 C10,13 7,10 1,10 C7,10 10,7 10,1 Z">
                     <Path.Fill>
                         <LinearGradientBrush StartPoint="0.1,0" EndPoint="0.9,1">
@@ -786,7 +785,7 @@
                                 </StackPanel>
                             </CheckBox>
 
-                            <!-- 安装位置：前面一个小文件夹图标，路径压暗，完整路径放 ToolTip -->
+                            <!-- 安装位置：一个小文件夹图标 + 压暗的路径文本 -->
                             <StackPanel x:Name="PathRow" Orientation="Horizontal" Margin="2,0,0,0"
                                         VerticalAlignment="Bottom">
                                 <Path Data="M1,2.6 L5.2,2.6 L6.6,4.4 L13,4.4 L13,11.2 L1,11.2 Z"
