@@ -1009,7 +1009,6 @@ namespace MiLauncher
                 ? "—"
                 : "v" + game.Version;
             TxtPath.Text = game.ExePath;
-            TxtPath.ToolTip = game.ExePath;
 
             // DX12 勾选项只对支持的游戏出现（目前只有绝区零），状态按游戏分别记忆
             CbDx12.Visibility = game.SupportsDx12 ? Visibility.Visible : Visibility.Collapsed;
@@ -2266,11 +2265,9 @@ namespace MiLauncher
             SwHidePath.IsChecked = _config.HideInstallPath;
 
             TxtCacheDir.Text = OfficialAssets.CacheDir;
-            TxtCacheDir.ToolTip = TxtCacheDir.Text;
 
             TxtAppVersion.Text = "版本 " + AppVersion();
             TxtConfigPath.Text = "配置：" + GameStore.ConfigPath;
-            TxtConfigPath.ToolTip = GameStore.ConfigPath;
 
             UpdateCacheSize();
         }
@@ -2390,7 +2387,6 @@ namespace MiLauncher
             SaveConfig();
 
             TxtCacheDir.Text = picked;
-            TxtCacheDir.ToolTip = picked;
             UpdateCacheSize();
 
             // 路径换了，当前这张背景按新位置重新读一次
