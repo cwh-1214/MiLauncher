@@ -854,15 +854,21 @@
             </Grid>
         </Grid>
 
-        <!-- ===== 标题栏：只覆盖详情区，左侧边栏不参与这一条渐变 ===== -->
+        <!-- ===== 标题栏：只覆盖详情区，左侧边栏不参与 ===== -->
         <Grid x:Name="TitleBar" Height="46" VerticalAlignment="Top" Panel.ZIndex="20"
               MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-            <Border x:Name="TitleBarFade" Margin="70,0,0,0">
+            <!-- 只在右上角那三个白色图标下面垫一小块暗角：图标压在浅色背景上需要一点衬底，
+                 其余部分（整条顶部、左侧标题区）完全不压，避免顶上出现一条灰带。
+                 高度 90 会溢出 46 的标题栏，靠 IsHitTestVisible=False 不吃鼠标。 -->
+            <Border x:Name="TitleBarFade" HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Width="300" Height="90" IsHitTestVisible="False">
                 <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#66000000" Offset="0" />
+                    <RadialGradientBrush Center="0.9,0.06" GradientOrigin="0.9,0.06"
+                                         RadiusX="0.62" RadiusY="0.95">
+                        <GradientStop Color="#4D000000" Offset="0" />
+                        <GradientStop Color="#24000000" Offset="0.55" />
                         <GradientStop Color="#00000000" Offset="1" />
-                    </LinearGradientBrush>
+                    </RadialGradientBrush>
                 </Border.Background>
             </Border>
 
