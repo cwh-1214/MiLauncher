@@ -686,16 +686,17 @@
                 </Border>
 
                 <!-- 底部压暗：唯一的一层蒙层，和官方一致。
-                     起点 40%，上半部分（角色、星空、官方标题）完全不压；
-                     左侧不再单独压暗，游戏名那行的可读性靠这层在 67% 附近补足。 -->
+                     用椭圆径向而不是线性：圆心压在左下角，所以左下最深、向右逐渐变浅，
+                     画面右下方（人物、场景）基本不受影响；上边缘同样天然为 0，没有硬边。 -->
                 <Border IsHitTestVisible="False">
                     <Border.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                            <GradientStop Color="#00000000" Offset="0.40" />
-                            <GradientStop Color="#8C0E0E14" Offset="0.72" />
-                            <GradientStop Color="#D60E0E14" Offset="0.90" />
-                            <GradientStop Color="#EB0E0E14" Offset="1.0" />
-                        </LinearGradientBrush>
+                        <RadialGradientBrush Center="0,1" GradientOrigin="0,1"
+                                             RadiusX="0.78" RadiusY="0.88">
+                            <GradientStop Color="#EB0E0E14" Offset="0" />
+                            <GradientStop Color="#8C0E0E14" Offset="0.52" />
+                            <GradientStop Color="#330E0E14" Offset="0.78" />
+                            <GradientStop Color="#000E0E14" Offset="1" />
+                        </RadialGradientBrush>
                     </Border.Background>
                 </Border>
 
