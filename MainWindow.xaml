@@ -561,8 +561,10 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd" Width="48" Height="48" CornerRadius="14"
-                                Background="#0AFFFFFF" BorderBrush="#20FFFFFF" BorderThickness="1">
-                            <Path Data="M0,0 L10,0 M5,-5 L5,5"
+                                Background="#12FFFFFF" BorderBrush="#33FFFFFF" BorderThickness="1">
+                            <!-- 十字几何必须从 (0,0) 开始画：原来 M5,-5 让路径有 5px 画在布局框上方，
+                                 Path 居中时视觉中心就偏上，看着"不在正中间"。 -->
+                            <Path Data="M0,5 L10,5 M5,0 L5,10"
                                   Stroke="#C8C8D6" StrokeThickness="1.6"
                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
