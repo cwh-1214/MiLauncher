@@ -854,19 +854,22 @@
             </Grid>
         </Grid>
 
-        <!-- ===== 标题栏：只覆盖详情区，左侧边栏不参与 ===== -->
+        <!-- ===== 标题栏：只覆盖详情区，左侧边栏不参与 =====
+             注意 Background 必须是 Transparent：Grid 背景为 null 时不参与命中测试，
+             整条标题栏就拖不动窗口了（之前是靠下面的渐变 Border 接住鼠标的）。 -->
         <Grid x:Name="TitleBar" Height="46" VerticalAlignment="Top" Panel.ZIndex="20"
+              Background="Transparent"
               MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
             <!-- 只在右上角那三个白色图标下面垫一小块暗角：图标压在浅色背景上需要一点衬底，
-                 其余部分（整条顶部、左侧标题区）完全不压，避免顶上出现一条灰带。
-                 高度 90 会溢出 46 的标题栏，靠 IsHitTestVisible=False 不吃鼠标。 -->
+                 其余部分（整条顶部、左侧标题区）完全不压。衰减给得很急，很快就到全透明。 -->
             <Border x:Name="TitleBarFade" HorizontalAlignment="Right" VerticalAlignment="Top"
-                    Width="300" Height="90" IsHitTestVisible="False">
+                    Width="240" Height="64" IsHitTestVisible="False">
                 <Border.Background>
                     <RadialGradientBrush Center="0.9,0.06" GradientOrigin="0.9,0.06"
-                                         RadiusX="0.62" RadiusY="0.95">
+                                         RadiusX="0.5" RadiusY="0.75">
                         <GradientStop Color="#4D000000" Offset="0" />
-                        <GradientStop Color="#24000000" Offset="0.55" />
+                        <GradientStop Color="#1F000000" Offset="0.45" />
+                        <GradientStop Color="#00000000" Offset="0.75" />
                         <GradientStop Color="#00000000" Offset="1" />
                     </RadialGradientBrush>
                 </Border.Background>
